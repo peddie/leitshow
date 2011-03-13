@@ -21,7 +21,7 @@ all: $(PROJ)
 
 $(PROJ): $(OBJ)
 	@echo CC $<
-	$(Q)$(CC) $(WARNINGFLAGS) $(OPFLAGS) $< -o $@ $(LDFLAGS)
+	$(Q)$(CC) $(WARNINGFLAGS) $(OPTFLAGS) $< -o $@ $(LDFLAGS)
 
 %.o : %.c
 	@echo CC $<
