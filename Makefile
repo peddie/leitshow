@@ -8,12 +8,17 @@ OBJ = $(SRC:%.c=%.o)
 WARNINGFLAGS ?= -Wall -Wextra -Werror -Wshadow -std=gnu99
 DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
 FEATUREFLAGS ?= 
+
+# Swap these two lines if you don't have GCC 4.5+.  
 OPTFLAGS ?= -march=native -O3 -msse4.1 -fcx-fortran-rules -flto
+# OPTFLAGS ?= -march=native -O3 -msse4.1 -fcx-fortran-rules 
+
+CC = gcc-4.5
+# CC ?= gcc
 
 LDFLAGS ?= -lpulse-simple -lpulse -lfftw3f -lm 
 
 CFLAGS ?= $(WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) 
-CC = gcc-4.5
 
 .PHONY: clean all
 

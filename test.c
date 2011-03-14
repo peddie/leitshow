@@ -105,7 +105,6 @@ main(int argc __attribute__((unused)),
   fprintf(stderr, "sizeof(buf) = %d, AUDIO_BYTES = %d, AUDIO_SIZE = %d\n",sizeof(buf), AUDIO_BYTES, AUDIO_SIZE);
 
   for (;;) {
-
     /* Record some data ... */
     if (pa_simple_read(s, buf, AUDIO_BYTES, &error) < 0) {
       fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
@@ -118,8 +117,8 @@ main(int argc __attribute__((unused)),
     for (j=0; j<NUM_CHANNELS; j++) {
       bins[j] = 0;
     }
-    /* Break it down(!) into magnitude and phase. */
-    // fprintf(stdout, "\n\n\n");
+
+    /* Break it down into magnitude and phase. */
     for (i=0, j=0, k=0; i<REAL_FFT_SIZE; i++, j++) {
       magnitude[i] = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]);
       phase[i] = atan2(out[i][1], out[i][0]);
@@ -127,6 +126,7 @@ main(int argc __attribute__((unused)),
       if (j >= FREQS_PER_CHANNEL) {j=0; k++; }
     }
 
+    /* Send the magic code word */
     ser[0] = 0xDE;
     ser[1] = 0xAD;
     ser[2] = 0xBE;
@@ -137,12 +137,13 @@ main(int argc __attribute__((unused)),
       } else {
         bins[j] /= FREQS_IN_TOP_CHANNEL;
       }
-      // fprintf(stderr, "%d ", (uint8_t) (255 * (bins[j] / 3)));
+
+      /* Low-pass filter each channel (to speed up, increase the `0.1'
+       * and decrease the `0.9' to match).  */
       float filt = 0.1 * bins[j] + 0.9 * bins_old[j];
       ser[4+j] = (uint8_t) (255 * (filt/ 3));
       bins_old[j] = filt;
     }
-    // fprintf(stderr, "\n");
     rc = write(serial, ser, 4+NUM_CHANNELS);
 
     /* Make sure we don't end up accidentally reusing data. */
