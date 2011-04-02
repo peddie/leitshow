@@ -1,4 +1,5 @@
 /* The Oasis Leitshow */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -14,52 +15,14 @@
 #include <termios.h>
 #include <fcntl.h>
 
+#include "config.h"
+#include "util.h"
+
 #ifndef DEBUG
 #define DBGPRINT(format, ...) fprintf(stderr, __VA_ARGS__)
 #else 
 #define DBGPRINT(format, ...)
 #endif
-
-/* FFT config */
-#define BUFFER_CYCLE 2
-#define REAL_FFT_SIZE ((((int) ((float) AUDIO_SIZE / 2)) * BUFFER_CYCLE))
-
-/* Input config */
-#define BUFSIZE 2048
-#define NUM_AUDIO_CHANNELS 1
-#define AUDIO_SIZE BUFSIZE * NUM_AUDIO_CHANNELS
-#define AUDIO_SAMPLE_RATE 44100
-#define AUDIO_BYTES AUDIO_SIZE * sizeof(float)
-
-/* Output config */
-#define NUM_CHANNELS 4
-
-/* We divide our number of frequency samples into this many chunks and
- * then use only the lowest-frequency chunk.  */
-#define BIN_SHRINKAGE 2.3
-
-/* This is a fixed scaling number, but really each channel should
- * slowly adapt its outputs to the amount of power in it. */
-#define OUTPUT_PRESCALE 0.01
-
-#define FREQS_PER_CHANNEL ((int) (((float) REAL_FFT_SIZE) / 3 / BIN_SHRINKAGE))
-#define FREQS_IN_TOP_CHANNEL ((int) (REAL_FFT_SIZE % NUM_CHANNELS) / BIN_SHRINKAGE)
-
-/* Filtering config */
-#define BIN_FILTER_CUTOFF_HZ {1, 1.5, 3, 4}
-#define BIN_FILTER_SAMPLE_TIME (((float) BUFSIZE) / ((float) AUDIO_SAMPLE_RATE))
-#define BIN_FILTER_CONSTANT (BIN_FILTER_SAMPLE_TIME * 6.283185307179586)
-
-/* Serial I/O config */
-#define BAUDRATE B115200
-#define LIGHT_SHOW_DEVICE "/dev/ttyUSB0"
-
-#define TTY_CTRL_OPTS (CS8 | CLOCAL | CREAD)
-#define TTY_INPUT_OPTS IGNPAR 
-#define TTY_OUTPUT_OPTS 0
-#define TTY_LOCAL_OPTS 0
-
-#define MAGIC_CODE 0xDEADBEEF
 
 struct termios tio;
 
@@ -93,9 +56,9 @@ serial_setup(const char *device)
 }
 
 void
-create_bins(float bins[NUM_CHANNELS], 
-            const float time_data[AUDIO_SIZE] __attribute__((unused)),
-            const fftwf_complex freq_data[REAL_FFT_SIZE])
+calc_bins(float bins[NUM_CHANNELS], 
+          const float time_data[AUDIO_SIZE] __attribute__((unused)),
+          const fftwf_complex freq_data[REAL_FFT_SIZE])
 {
   int i, j, k;
   float magnitude; //, phase, power;
@@ -133,28 +96,6 @@ create_bins(float bins[NUM_CHANNELS],
 }
 
 void
-clip_and_convert_channels(uint8_t channel[NUM_CHANNELS], 
-                          const float bins[NUM_CHANNELS])
-{
-  int i;
-  uint8_t tmp;
-  float out;
-  for (i=0; i<NUM_CHANNELS; i++) {
-    /* Make sure we don't exceed 255.  */
-    // out = bins[NUM_CHANNELS-1-i];
-    out = bins[i];
-    if (out > 1.0)
-      out = 1.0;
-    channel[i] = (uint8_t) (255 * out);
-    DBGPRINT(stderr, "%d ", channel[i]);
-  }
-  DBGPRINT(stderr, "\n");
-  tmp = channel[0];
-  channel[0] = channel[2]; 
-  channel[2] = tmp;
-}
-
-void
 set_channels(uint8_t channel[NUM_CHANNELS], 
              const float time_data[AUDIO_SIZE], 
              const fftwf_complex freq_data[REAL_FFT_SIZE])
@@ -164,7 +105,7 @@ set_channels(uint8_t channel[NUM_CHANNELS],
   /* Make sure we don't end up accidentally reusing data. */
   for (i=0; i<NUM_CHANNELS; i++) bins[i]=0;
 
-  create_bins(bins, time_data, freq_data);
+  calc_bins(bins, time_data, freq_data);
   clip_and_convert_channels(channel, bins);
 }
 

@@ -1,6 +1,6 @@
 Q ?= @
 PROJ = leitshow
-SRC = test.c
+SRC = test.c util.c 
 
 OBJ = $(SRC:%.c=%.o) 
 
@@ -25,8 +25,8 @@ CFLAGS ?= $(WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS)
 all: $(PROJ)
 
 $(PROJ): $(OBJ)
-	@echo CC $<
-	$(Q)$(CC) $(WARNINGFLAGS) $(OPTFLAGS) $< -o $@ $(LDFLAGS)
+	@echo CC $?
+	$(Q)$(CC) $(WARNINGFLAGS) $(OPTFLAGS) $? -o $@ $(LDFLAGS)
 
 %.o : %.c
 	@echo CC $<
