@@ -75,7 +75,7 @@ bin_bound_cost(float bin_powers[NUM_CHANNELS],
   float narrow = CORR_NARROW_WEIGHT
       * (minsize < min_ok_size) * (min_ok_size - minsize);
   
-  fprintf(stderr, "\tcost evaluation: %f %f %f %f\n",
+  fprintf(stdout, "\tcost evaluation: %f %f %f %f\n",
           variance, corr, min, narrow);
   
   return variance + corr + min + narrow;
@@ -101,6 +101,9 @@ bin_bound_adjust(int bin_bounds[NUM_BOUNDS],
                  const float freq_powers[REAL_FFT_SIZE],
                  const fftwf_complex freq_data[REAL_FFT_SIZE])
 {
+
+  int old_bin_bounds[NUM_BOUNDS];
+  memcpy(old_bin_bounds, bin_bounds, sizeof(old_bin_bounds));
   /* Loop over bin boundaries and compute the optimal update for
    * each.  */
   for (int i = 0; i < NUM_BOUNDS; i++) {
@@ -153,7 +156,8 @@ bin_bound_adjust(int bin_bounds[NUM_BOUNDS],
         /* Compute the cost for this pair. */
         this_pow[i] = below;
         this_pow[i+1] = above;
-        costs[h] = bin_bound_cost(this_pow, bin_bounds, corrs[h]);
+        costs[h] = bin_bound_cost(this_pow, old_bin_bounds, corrs[h]);
+#define SERIOUS_DEBUG_ADAP        
 #ifdef SERIOUS_DEBUG_ADAP        
         printf("    ADAP: bound %d: search %d of %d: %d -> %d  xcorr %f"
                "neighbors (%f, %f) (%f, %f)\n",
@@ -164,7 +168,8 @@ bin_bound_adjust(int bin_bounds[NUM_BOUNDS],
 
       /* Choose the best new bin bound (the minimum of the cost function). */
       int best = array_min_ind(costs, safe_range);
-
+#define DEBUG_ADAP
+      
       /* Update the bin bound and correlation */
 #ifdef DEBUG_ADAP
       int old = bin_bounds[i];
@@ -174,8 +179,13 @@ bin_bound_adjust(int bin_bounds[NUM_BOUNDS],
 
       /* Debugging message */
 #ifdef DEBUG_ADAP
-      printf("  ADAP: bound %d: %d -> %d   xcorr %f  best %d\n",
-             i, old, bin_bounds[i], correlations[i], best);
+      printf("  ADAP: bound %d: %d -> %d   xcorr %f  best %d (%f) of (",
+             i, old, bin_bounds[i], correlations[i], best, costs[best]);
+
+      for (int j = 0; j < safe_range; j++)
+        printf("%f ", costs[j]);
+      printf(")\n");
+      
 #endif  /* DEBUG_ADAP */
     } else {
       /* Just update the correlation with the existing bins; we didn't
@@ -198,8 +208,8 @@ bin_bound_adjust(int bin_bounds[NUM_BOUNDS],
 
       correlations[i] = iir_complex_correlation(below_cx, above_cx, correlations[i]);
     }
-    printf("%f ", correlations[i]);
+/*     printf("%f ", correlations[i]); */
   }
-  printf("\t");
+/*   printf("\t"); */
   bin_update++;
 }

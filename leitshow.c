@@ -122,9 +122,9 @@ calc_bins(float bins[NUM_CHANNELS],
 
   /* Update bin boundaries. */
   bin_bound_adjust(bin_bounds, bins, freq_powers, freq_data);
-  for (int i = 0; i < NUM_BOUNDS; i++)
-    printf("%d ", bin_bounds[i]);
-  printf("\t");
+/*   for (int i = 0; i < NUM_BOUNDS; i++) */
+/*     printf("%d ", bin_bounds[i]); */
+/*   printf("\t"); */
 
   /* Scale bin magnitudes for output. */
   array_scale(bins, OUTPUT_PRESCALE, NUM_CHANNELS);
@@ -135,9 +135,9 @@ calc_bins(float bins[NUM_CHANNELS],
     bins_old[i] = bins[i] = binfilter[i]*BIN_FILTER_CONSTANT * bins[i]
         + (1 - binfilter[i]*BIN_FILTER_CONSTANT) * bins_old[i];
 /*     DBGPRINT(stderr, "%f ", bins[i]); */
-    printf("%f ", bins[i]);
+/*     printf("%f ", bins[i]); */
   }
-  printf("\n");
+/*   printf("\n"); */
 
 }
 
