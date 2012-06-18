@@ -28,7 +28,7 @@
 #define OUTPUT_PRESCALE 0.01
 
 #define FREQS_PER_CHANNEL ((int) (((float) REAL_FFT_SIZE) / 3 / BIN_SHRINKAGE))
-#define FREQS_IN_TOP_CHANNEL ((int) (REAL_FFT_SIZE % NUM_CHANNELS) / BIN_SHRINKAGE)
+#define FREQS_IN_TOP_CHANNEL ((int) ((REAL_FFT_SIZE % NUM_CHANNELS) / BIN_SHRINKAGE))
 
 /* Filtering config */
 #define BIN_FILTER_CUTOFF_HZ {4, 4, 5, 6}

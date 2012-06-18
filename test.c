@@ -19,6 +19,8 @@
 #include "config.h"
 #include "util.h"
 
+#include "arraymath.h"
+
 #ifndef DEBUG
 #define DBGPRINT(format, ...) fprintf(stderr, __VA_ARGS__)
 #else 
@@ -26,6 +28,11 @@
 #endif
 
 struct termios tio;
+
+/* Bin boundary indices within the FFT data */
+int bin_bounds[NUM_BOUNDS];
+/* Power values for each channel at the last timestep */
+float bins_old[NUM_CHANNELS];
 
 static int
 serial_setup(const char *device)
@@ -56,43 +63,70 @@ serial_setup(const char *device)
   return serial;
 }
 
+static inline void
+calc_fft_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
+               float freq_powers[REAL_FFT_SIZE],
+               float freq_phases[REAL_FFT_SIZE])
+{
+  for (int i = 0; i < REAL_FFT_SIZE; i++) {
+    freq_powers[i] = sqrt(freq_data[i][0]*freq_data[i][0]
+                         + freq_data[i][1]*freq_data[i][1]);
+    freq_phases[i] = atan2(freq_data[i][1], freq_data[i][0]);
+  }
+}
+
+static void
+calc_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
+           float bin_powers[NUM_CHANNELS],
+           float bin_phases[NUM_CHANNELS])
+{
+  int i;
+  float freq_powers[REAL_FFT_SIZE], freq_phases[REAL_FFT_SIZE];
+  calc_fft_stats(freq_data, freq_powers, freq_phases);
+  
+  for (i = 0; i < NUM_CHANNELS; i++) {
+    /* Compute safe indices */
+    int min_ind, max_ind, bin_size;
+    if (i == 0)
+      min_ind = 0;
+    else
+      min_ind = bin_bounds[i - 1];
+    if (i == NUM_CHANNELS - 1)
+      max_ind = REAL_FFT_SIZE - 1;
+    else
+      max_ind = bin_bounds[i] - 1;
+
+    bin_size = max_ind - min_ind;
+
+    /* Loop over all FFT data within this bin and compute magnitude
+     * and phase. */
+    bin_powers[i] = bin_phases[i] = 0;
+    bin_powers[i] = array_mean(&freq_powers[min_ind], bin_size);
+    bin_phases[i] = array_mean(&freq_phases[min_ind], bin_size);
+  }
+}
+
 static void
 calc_bins(float bins[NUM_CHANNELS], 
           const float time_data[AUDIO_SIZE] __attribute__((unused)),
           const fftwf_complex freq_data[REAL_FFT_SIZE])
 {
-  int i, j, k;
-  float magnitude; //, phase, power;
-  static float bins_old[NUM_CHANNELS];
+  int i;
   float binfilter[NUM_CHANNELS] = BIN_FILTER_CUTOFF_HZ;
 
-  /* Calculate the power of this audio sample */
-  /* for (i=0, power=0; i<AUDIO_SIZE; i++) power += time_data[i]*time_data[i]; */
-  /* power = sqrt(power) / AUDIO_SIZE; */
-    
-  for (i=0, j=0, k=0; i<REAL_FFT_SIZE; i++, j++) {
-    /* Break it down into magnitude and phase. */
-    magnitude = sqrt(freq_data[i][0]*freq_data[i][0] 
-                     + freq_data[i][1]*freq_data[i][1]);
-    // phase = atan2(freq_data[i][1], freq_data[i][0]);
-    if (k < NUM_CHANNELS) {
-      bins[k] += OUTPUT_PRESCALE * magnitude;
-      if (j >= FREQS_PER_CHANNEL) {j=0; k++;}
-    } else break;
-  }
+  /* Compute binwise statistics */
+  float bin_phases[NUM_CHANNELS];
+  calc_stats(freq_data, bins, bin_phases);
 
-  /* Normalize bin magnitudes. */
-  for (k=0; k<NUM_CHANNELS; k++) {
-    if ((k == NUM_CHANNELS-1) && (BIN_SHRINKAGE == 1)) 
-      bins[k] /= FREQS_IN_TOP_CHANNEL;
-    else
-      bins[k] /= FREQS_PER_CHANNEL;
-
-    /* Low-pass filter each channel (set the performance with
-     * BIN_FILTER_CUTOFF_HZ).  */
-    bins_old[k] = bins[k] = binfilter[k]*BIN_FILTER_CONSTANT * bins[k]
-      + (1 - binfilter[k]*BIN_FILTER_CONSTANT) * bins_old[k];
-    DBGPRINT(stderr, "%f ", bins[k]);
+  /* Scale bin magnitudes for output. */
+  array_scale(bins, OUTPUT_PRESCALE, NUM_CHANNELS);
+  
+  /* Low-pass filter each channel (set the performance with
+   * BIN_FILTER_CUTOFF_HZ).  */
+  for (i = 0; i < NUM_CHANNELS; i++) {
+    bins_old[i] = bins[i] = binfilter[i]*BIN_FILTER_CONSTANT * bins[i]
+        + (1 - binfilter[i]*BIN_FILTER_CONSTANT) * bins_old[i];
+    DBGPRINT(stderr, "%f ", bins[i]);
   }
 }
 
@@ -149,6 +183,11 @@ main(int argc __attribute__((unused)),
           "AUDIO_BYTES = %d, AUDIO_SIZE = %d, REAL_FFT_SIZE = %d, BIN_FILTER_CONSTANT = %f, FREQS_PER_CHANNEL = %d\n", 
           AUDIO_BYTES, AUDIO_SIZE, REAL_FFT_SIZE, BIN_FILTER_CONSTANT, FREQS_PER_CHANNEL);
 
+  /* Initialize bin boundaries. */
+  for (i = 0; i < NUM_BOUNDS; i++) {
+    bin_bounds[i] = FREQS_PER_CHANNEL * (i + 1);
+  }
+  
   for (;;) {
 
     /* Cycle audio data through the buffer */
