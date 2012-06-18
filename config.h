@@ -5,10 +5,6 @@
 
 #include <termios.h>
 
-/* FFT config */
-#define BUFFER_CYCLE 2
-#define REAL_FFT_SIZE ((((int) ((float) AUDIO_SIZE / 2)) * BUFFER_CYCLE))
-
 /* Input config */
 #define BUFSIZE 2048
 #define NUM_AUDIO_CHANNELS 1
@@ -16,12 +12,16 @@
 #define AUDIO_SAMPLE_RATE 44100
 #define AUDIO_BYTES AUDIO_SIZE * sizeof(float)
 
+/* FFT config */
+#define BUFFER_CYCLE 2
+#define REAL_FFT_SIZE ((((int) ((float) AUDIO_SIZE / 2)) * BUFFER_CYCLE))
+
 /* Output config */
 #define NUM_CHANNELS 4
 
 /* We divide our number of frequency samples into this many chunks and
  * then use only the lowest-frequency chunk.  */
-#define BIN_SHRINKAGE 2.3
+#define BIN_SHRINKAGE 2.5
 
 /* This is a fixed scaling number, but really each channel should
  * slowly adapt its outputs to the amount of power in it. */
@@ -31,7 +31,7 @@
 #define FREQS_IN_TOP_CHANNEL ((int) (REAL_FFT_SIZE % NUM_CHANNELS) / BIN_SHRINKAGE)
 
 /* Filtering config */
-#define BIN_FILTER_CUTOFF_HZ {1, 1.5, 3, 4}
+#define BIN_FILTER_CUTOFF_HZ {4, 4, 5, 6}
 #define BIN_FILTER_SAMPLE_TIME (((float) BUFSIZE) / ((float) AUDIO_SAMPLE_RATE))
 #define BIN_FILTER_CONSTANT ((BIN_FILTER_SAMPLE_TIME * 6.283185307179586) / (1 + (BIN_FILTER_SAMPLE_TIME * 6.283185307179586)))
 

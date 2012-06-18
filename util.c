@@ -1,5 +1,6 @@
 /* Oasis Leitshow, handy utilities for any algorithm */
 
+#include <stdio.h>
 #include <stdint.h>
 
 #include "util.h"

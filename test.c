@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <pulse/simple.h>
 #include <pulse/error.h>
@@ -26,7 +27,7 @@
 
 struct termios tio;
 
-int
+static int
 serial_setup(const char *device)
 {
   int rc;
@@ -55,7 +56,7 @@ serial_setup(const char *device)
   return serial;
 }
 
-void
+static void
 calc_bins(float bins[NUM_CHANNELS], 
           const float time_data[AUDIO_SIZE] __attribute__((unused)),
           const fftwf_complex freq_data[REAL_FFT_SIZE])
@@ -89,13 +90,13 @@ calc_bins(float bins[NUM_CHANNELS],
 
     /* Low-pass filter each channel (set the performance with
      * BIN_FILTER_CUTOFF_HZ).  */
-    bins_old[k] = bins[k] = binfilter[k]*BIN_FILTER_CONSTANT * bins[k] * (1 + 2 * (k>1))
+    bins_old[k] = bins[k] = binfilter[k]*BIN_FILTER_CONSTANT * bins[k]
       + (1 - binfilter[k]*BIN_FILTER_CONSTANT) * bins_old[k];
     DBGPRINT(stderr, "%f ", bins[k]);
   }
 }
 
-void
+static void
 set_channels(uint8_t channel[NUM_CHANNELS], 
              const float time_data[AUDIO_SIZE], 
              const fftwf_complex freq_data[REAL_FFT_SIZE])

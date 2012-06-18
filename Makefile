@@ -1,40 +1,125 @@
-Q ?= @
+###### Standard Makefile template (replace this part with copyrights
+###### or other nonsense).
+######
+###### I got sick of always having to copy and paste makefiles and
+###### compiler flags between projects, and I'm slowly but surely
+###### learning more about GNU Make.  
+######
+###### Matthew Peddie <peddie@alum.mit.edu>
+
+# TODO: 
+#
+#   - options to build shared and static libraries
+#   - dependency tracking
+
+###### This section should be all you need to configure a basic
+###### project; obviously for more complex projects, you'll need to
+###### edit the bottom section as well.
+
+# What's the executable called?
 PROJ = leitshow
-SRC = test.c util.c 
 
-OBJ = $(SRC:%.c=%.o) 
+# What C files must we compile?
+SRC ?= test.c util.c
 
-## Compile pedantically and save pain later
-WARNINGFLAGS ?= -Wall -Wextra -Werror -Wshadow -std=gnu99
-DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
-FEATUREFLAGS ?= 
+# What directories must we include?
+INCLUDES ?= 
 
-# Swap these two lines if you don't have GCC 4.5+.  
-OPTFLAGS ?= -march=native -O3 -msse4.1 -fcx-fortran-rules -flto
-# OPTFLAGS ?= -march=native -O3 -msse4.1 -fcx-fortran-rules 
+# With what libraries should we link?
+LIBS ?= -lpulse-simple -lpulse -lfftw3f -lm 
 
-CC = gcc-4.5
-# CC ?= gcc
+###### Shouldn't have to configure this section ######
 
-LDFLAGS ?= -lpulse-simple -lpulse -lfftw3f -lm 
+ASMNAME ?= lst
 
-CFLAGS ?= $(WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) 
+# Default setting for object files is just .c -> .o
+ASM ?= $(SRC:%.c=%.$(ASMNAME))
+OBJ ?= $(SRC:%.c=%.o)
 
-.PHONY: clean all
+# Here we remove all paths from the given object and source file
+# names; you can echo these in commands and get slightly tidier output.
+SRC_SHORT = $(notdir $(SRC))
+ASM_SHORT = $(notdir $(ASM))
+OBJ_SHORT = $(notdir $(OBJ))
 
-all: $(PROJ)
+# GCC by default (easy to override from outside the makefile)
+CC ?= gcc 
 
-$(PROJ): $(OBJ)
-	@echo CC $?
-	$(Q)$(CC) $(WARNINGFLAGS) $(OPTFLAGS) $? -o $@ $(LDFLAGS)
+# Quiet commands unless overridden
+Q ?= @
 
+# Generate sweet mixed assembly/C listing files
+ASMFLAGS ?= -fverbose-asm -Wa,-L,-alhsn=
+
+# Second-level optimizations that don't increase binary size (O2 or
+# above required for -D_FORTIFY_SOURCE=2 below); optimize for this
+# machine architecture, including sse4.1; try using the vectorizer to
+# speed up array code (gcc 4.5+, I think?); build object files for use
+# by the link-time optimizer (gcc 4.5+, I think, but only really works
+# in 4.6)
+OPTFLAGS ?= -Os -march=native -msse4.1 -ftree-vectorize -flto
+
+# Mega-warnings by default.  For many explanations, see
+# http://stackoverflow.com/questions/3375697/useful-gcc-flags-for-c
+
+# We prefer C99 with GNU extensions
+WARNFLAGS ?= -Wall -Wextra -std=gnu99 -pedantic-errors \
+             -Wshadow -Wswitch-default -Wswitch-enum -Wundef \
+             -Wuninitialized -Wpointer-arith -Wstrict-prototypes \
+             -Wmissing-prototypes -Wcast-align -Wformat=2 \
+             -Wimplicit-function-declaration -Wredundant-decls \
+             -Wformat-security -Werror
+
+# Include debug symbols; trap on signed integer overflows; install
+# mudflaps for runtime checks on arrays (including malloced ones)
+DBGFLAGS ?= -g # -ftrapv -fmudflap 
+
+# Build position-independent executables; fortify with array checks;
+# protect stack
+SECFLAGS ?= -fPIE -D_FORTIFY_SOURCE=2 -fstack-protector
+
+# Run the link-time optimizer
+LDOPTFLAGS ?= -flto
+LDWARNFLAGS ?=
+# Use the mudflaps library for runtime checks
+LDDBGFLAGS ?= # -lmudflap 
+# Link as a position-independent executable; mark ELF sections
+# read-only where applicable; resolve all dynamic symbols at initial
+# load of program and (in combination with relro) mark PLT read-only
+LDSECFLAGS ?= -pie -Wl,-z,relro -Wl,-z,now
+
+CFLAGS = $(WARNFLAGS) $(OPTFLAGS) $(SECFLAGS) $(INCLUDES) $(DBGFLAGS)
+LDFLAGS = $(LDWARNFLAGS) $(LDOPTFLAGS) $(LDSECFLAGS) $(LIBS) $(LDDBGFLAGS) 
+
+.PHONY: clean
+
+# Build the project
+$(PROJ): $(OBJ)  
+	@echo LD $@
+	$(Q)$(CC) $+ $(LDFLAGS) -o $@
+
+# Generate object files; output assembly listings alongside.  
 %.o : %.c
-	@echo CC $<
-	$(Q)$(CC) $(CFLAGS) -c $< -o $@
+	@echo CC $(notdir $+)
+	$(Q)$(CC) $(CFLAGS) $(ASMFLAGS)$(+:%.c=%.$(ASMNAME)) -c $+ -o $@
 
-%.o : %.cpp
-	@echo CXX $<
-	$(Q)$(CXX) $(CXXFLAGS) -c $< -o $@
-
+# Remove executable, object and assembly files
 clean:
-	rm -f $(OBJ) $(PROJ)
+	@echo CLEAN $(PROJ) $(OBJ_SHORT:%.o=%)
+	$(Q)rm -f $(PROJ) $(OBJ) $(ASM)
+
+.PHONY: check-syntax-c check-syntax-cc check-syntax 
+
+check-syntax: check-syntax-c check-syntax-cc
+
+check-syntax-c:
+ifneq (,$(findstring .c,$(C_SRC)))
+	@echo SYNTAX_CHECK $(C_SRC)
+	$(Q)$(CC) -fsyntax-only $(WARNFLAGS) $(INCLUDES) $(C_SRC)
+endif
+
+check-syntax-cc:
+ifneq (,$(findstring .cc,$(CXX_SRC)))
+	@echo SYNTAX_CHECK $(CXX_SRC)
+	$(Q)$(CXX) -fsyntax-only $(WARNFLAGS) $(INCLUDES) $(CXX_SRC)
+endif
