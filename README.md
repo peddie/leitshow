@@ -30,9 +30,9 @@ Get Dependencies
 
     sudo apt-get install libfftw3-dev libpulse-dev
 
-The makefile wants gcc-4.5; if you don't have it, you can change that
-to just `gcc` and remove `-flto` from the definition of `OPTFLAGS` and
-`LDOPTFLAGS`.
+The makefile assumes `gcc` 4.5 or higher so it can do link-time
+optimization; if you don't have it, just remove `-flto` from the
+definition of `OPTFLAGS` and `LDOPTFLAGS`.
 
 Build
 ------------
