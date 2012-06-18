@@ -18,6 +18,7 @@
 
 #include "config.h"
 #include "util.h"
+#include "newadap.h"
 
 #include "arraymath.h"
 
@@ -78,10 +79,11 @@ calc_fft_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
 static void
 calc_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
            float bin_powers[NUM_CHANNELS],
-           float bin_phases[NUM_CHANNELS])
+           float bin_phases[NUM_CHANNELS],
+           float freq_powers[REAL_FFT_SIZE],
+           float freq_phases[REAL_FFT_SIZE])
 {
   int i;
-  float freq_powers[REAL_FFT_SIZE], freq_phases[REAL_FFT_SIZE];
   calc_fft_stats(freq_data, freq_powers, freq_phases);
   
   for (i = 0; i < NUM_CHANNELS; i++) {
@@ -111,23 +113,32 @@ calc_bins(float bins[NUM_CHANNELS],
           const float time_data[AUDIO_SIZE] __attribute__((unused)),
           const fftwf_complex freq_data[REAL_FFT_SIZE])
 {
-  int i;
   float binfilter[NUM_CHANNELS] = BIN_FILTER_CUTOFF_HZ;
+  float freq_powers[REAL_FFT_SIZE], freq_phases[REAL_FFT_SIZE];
 
   /* Compute binwise statistics */
   float bin_phases[NUM_CHANNELS];
-  calc_stats(freq_data, bins, bin_phases);
+  calc_stats(freq_data, bins, bin_phases, freq_powers, freq_phases);
+
+  /* Update bin boundaries. */
+  bin_bound_adjust(bin_bounds, bins, freq_powers, freq_data);
+  for (int i = 0; i < NUM_BOUNDS; i++)
+    printf("%d ", bin_bounds[i]);
+  printf("\t");
 
   /* Scale bin magnitudes for output. */
   array_scale(bins, OUTPUT_PRESCALE, NUM_CHANNELS);
   
   /* Low-pass filter each channel (set the performance with
    * BIN_FILTER_CUTOFF_HZ).  */
-  for (i = 0; i < NUM_CHANNELS; i++) {
+  for (int i = 0; i < NUM_CHANNELS; i++) {
     bins_old[i] = bins[i] = binfilter[i]*BIN_FILTER_CONSTANT * bins[i]
         + (1 - binfilter[i]*BIN_FILTER_CONSTANT) * bins_old[i];
-    DBGPRINT(stderr, "%f ", bins[i]);
+/*     DBGPRINT(stderr, "%f ", bins[i]); */
+    printf("%f ", bins[i]);
   }
+  printf("\n");
+
 }
 
 static void
@@ -159,6 +170,12 @@ main(int argc __attribute__((unused)),
   int error, serial, i;
   uint8_t ser[4+NUM_CHANNELS];
 
+  printf("REAL_FFT_SIZE is %d.\n"
+         "AUDIO_SIZE is %d.\n"
+         "FREQS_PER_CHANNEL is %d.\n"
+         "FREQS_IN_TOP_CHANNEL is %d.\n",
+         REAL_FFT_SIZE, AUDIO_SIZE, FREQS_PER_CHANNEL, FREQS_IN_TOP_CHANNEL);
+  
   /* Create the recording stream */
   if (!(s = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error))) {
     fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
@@ -211,9 +228,9 @@ main(int argc __attribute__((unused)),
 
 finish:
 
-  /* fftwf_free(out);   */
-  /* fftwf_free(buf); */
-  /* fftwf_destroy_plan(plan); */
+/*   fftwf_free(out); */
+/*   fftwf_free(buf); */
+/*   fftwf_destroy_plan(plan); */
   if (s)
     pa_simple_free(s);
 

@@ -20,7 +20,7 @@
 PROJ = leitshow
 
 # What C files must we compile?
-SRC ?= leitshow.c util.c
+SRC ?= leitshow.c util.c newadap.c
 
 # What directories must we include?
 INCLUDES ?= 

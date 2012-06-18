@@ -44,9 +44,9 @@ clip_and_convert_channels(uint8_t channel[NUM_CHANNELS],
     if (out > 1.0)
       out = 1.0;
     channel[i] = (uint8_t) (255 * out);
-    DBGPRINT(stderr, "%d ", channel[i]);
+/*     DBGPRINT(stderr, "%d ", channel[i]); */
   }
-  DBGPRINT(stderr, "\n");
+/*   DBGPRINT(stderr, "\n"); */
   tmp = channel[0];
   channel[0] = channel[2]; 
   channel[2] = tmp;
