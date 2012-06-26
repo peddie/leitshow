@@ -39,6 +39,11 @@ float filter_state[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY;
 /* Channel gains */
 float gains[NUM_CHANNELS] = CHANNEL_GAIN;
 
+/* Threshold filter state */
+float thresh_filter_state[NUM_CHANNELS] = THRESH_GOAL_ACTIVITY;
+/* Activity thresholds */
+float thresholds[NUM_CHANNELS];
+
 static int
 serial_setup(const char *device)
 {
@@ -153,6 +158,10 @@ set_channels(uint8_t channel[NUM_CHANNELS],
   
   /* Adjust for better activity */
   gain_adjust_bins(bins, filter_state, gains);
+
+  
+  /* Threshold for better activity */
+  threshold_bins(bins, thresh_filter_state, thresholds);
 
   /* Convert to 8-bit binary */
   clip_and_convert_channels(channel, bins);

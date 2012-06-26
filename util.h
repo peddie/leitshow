@@ -20,6 +20,10 @@ void gain_adjust_bins(float bins[NUM_CHANNELS],
                       float filter_state[NUM_CHANNELS],
                       float gains[NUM_CHANNELS]);
 
+void threshold_bins(float bins[NUM_CHANNELS],
+                    float filter_state[NUM_CHANNELS],
+                    float thresholds[NUM_CHANNELS]);
+
 /* Given an array of bin data and low-pass filter states, make all bin
  * values except DECORR_BASE_CHANNEL the difference between that bin
  * value and DECORR_BASE_CHANNEL, normalized appropriately. */

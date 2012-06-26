@@ -71,6 +71,57 @@ gain_adjust_bins(float bins[NUM_CHANNELS],
   fprintf(stderr, "\t");
 }
 
+static inline float
+bin_above_threshold(const float bin, const float threshold)
+{
+  if (bin < threshold)
+    return 0;
+  return (bin - threshold) * (1 / (1 - threshold));
+}
+
+static inline float
+binary_act_filter(const float bin, const float threshold,
+                  const float bin_old, const float cutoff_hz)
+{
+  if (bin < threshold)
+    return (1 - cutoff_hz*THRESH_FILTER_CONSTANT)*bin_old;
+  return CHAN_GAIN_FILTER_CONSTANT*cutoff_hz
+      + (1 - cutoff_hz*CHAN_GAIN_FILTER_CONSTANT)*bin_old;
+
+}
+
+void
+threshold_bins(float bins[NUM_CHANNELS],
+               float filter_state[NUM_CHANNELS],
+               float thresholds[NUM_CHANNELS])
+{
+  const float cutoffs[NUM_CHANNELS] = THRESH_FILTER_CUTOFF_HZ;
+  const float goal[NUM_CHANNELS] = THRESH_GOAL_ACTIVITY;
+  
+  for (int i = 0; i < NUM_CHANNELS; i++) {
+    /* Threshold the bin */
+    bins[i] = bin_above_threshold(bins[i], thresholds[i]);
+
+    /* Low-pass filter on/off state */
+    filter_state[i] = binary_act_filter(bins[i], thresholds[i],
+                                        filter_state[i], cutoffs[i]);
+
+    /* Adjust threshold by feedback */
+    const float update = (goal[i] - filter_state[i]) / fabs(filter_state[i]);
+
+    if (fabs(update) > THRESH_UPDATE_BUMP)
+      thresholds[i] -= THRESH_BUMP*update;
+
+    if (thresholds[i] > THRESH_MAX)
+      thresholds[i] = THRESH_MAX;
+    else if (thresholds[i] < THRESH_MIN)
+      thresholds[i] = THRESH_MIN;
+    
+    fprintf(stderr, " %f", thresholds[i]);
+  }
+  fprintf(stderr, "\t");
+}
+
 void
 diff_bins(float bins[NUM_CHANNELS],
           const float filter_state[NUM_CHANNELS] __attribute__((unused)))
