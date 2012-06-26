@@ -46,6 +46,10 @@
 #define CHAN_GAIN_BUMP 0.001
 #define CHAN_GAIN_UPDATE_BUMP 0.05
 
+/* Decorrelation config */
+#define DECORR_BASE_CHANNEL 0
+#define DECORR_PERCENT_DERIV 0.9
+
 /* Serial I/O config */
 #define BAUDRATE B115200
 #define LIGHT_SHOW_DEVICE "/dev/ttyUSB0"

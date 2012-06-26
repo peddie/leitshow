@@ -72,6 +72,25 @@ gain_adjust_bins(float bins[NUM_CHANNELS],
 }
 
 void
+diff_bins(float bins[NUM_CHANNELS],
+          const float filter_state[NUM_CHANNELS] __attribute__((unused)))
+{
+  for (int i = 0; i < NUM_CHANNELS; i++) {
+    if (i == DECORR_BASE_CHANNEL) continue;
+    
+    const float ratio = filter_state[i] / filter_state[DECORR_BASE_CHANNEL];
+    /* Alternate way to compute ratio */
+    /* const float act[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY; */
+    /* const float ratio2 = act[DECORR_BASE_CHANNEL] / act[i];  */
+    bins[i] = fabs(bins[i] - filter_state[i]
+                   - 0.1 * filter_state[DECORR_BASE_CHANNEL]);
+    bins[i] = DECORR_PERCENT_DERIV * fabs(bins[i] - filter_state[i])
+        + (1 - DECORR_PERCENT_DERIV)
+        * fabs(bins[i] - ratio * bins[DECORR_BASE_CHANNEL]);
+  }
+}
+
+void
 clip_and_convert_channels(uint8_t channel[NUM_CHANNELS], 
                           const float bins[NUM_CHANNELS])
 {

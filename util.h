@@ -20,6 +20,12 @@ void gain_adjust_bins(float bins[NUM_CHANNELS],
                       float filter_state[NUM_CHANNELS],
                       float gains[NUM_CHANNELS]);
 
+/* Given an array of bin data and low-pass filter states, make all bin
+ * values except DECORR_BASE_CHANNEL the difference between that bin
+ * value and DECORR_BASE_CHANNEL, normalized appropriately. */
+void diff_bins(float bins[NUM_CHANNELS],
+               const float filter_state[NUM_CHANNELS]);
+
 /* Convert channel values from floats to uint8_ts, making sure to
  * saturate properly.  */
 void clip_and_convert_channels(uint8_t channel[NUM_CHANNELS], 

@@ -148,6 +148,9 @@ set_channels(uint8_t channel[NUM_CHANNELS],
   /* Calculate values based on audio */
   calc_bins(bins, time_data, freq_data);
 
+  /* Differentiate most bins to decorrelate them */
+  diff_bins(bins, filter_state);
+  
   /* Adjust for better activity */
   gain_adjust_bins(bins, filter_state, gains);
 
