@@ -18,6 +18,7 @@
 
 /* Output config */
 #define NUM_CHANNELS 4
+#define NUM_BOUNDS (NUM_CHANNELS - 1)
 
 /* We divide our number of frequency samples into this many chunks and
  * then use only the lowest-frequency chunk.  */
@@ -32,6 +33,7 @@
 
 /* Filtering config */
 #define BIN_FILTER_CUTOFF_HZ {4, 4, 5, 6}
+#define CHANNEL_GAIN {0.1, 1.4, 1.4, 0.5}
 #define BIN_FILTER_SAMPLE_TIME (((float) BUFSIZE) / ((float) AUDIO_SAMPLE_RATE))
 #define BIN_FILTER_CONSTANT ((BIN_FILTER_SAMPLE_TIME * 6.283185307179586) / (1 + (BIN_FILTER_SAMPLE_TIME * 6.283185307179586)))
 
