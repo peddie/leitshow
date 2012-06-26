@@ -22,6 +22,8 @@ PROJ = leitshow
 # What C files must we compile?
 SRC ?= leitshow.c util.c
 
+HDR ?= config.h arraymath.h
+
 # What directories must we include?
 INCLUDES ?= 
 
@@ -30,11 +32,23 @@ LIBS ?= -lpulse-simple -lpulse -lfftw3f -lm
 
 ###### Shouldn't have to configure this section ######
 
+C_SRC = $(filter %.c,$(SRC))
+CXX_SRC = $(filter %.cc,$(SRC))
+
 ASMNAME ?= lst
 
 # Default setting for object files is just .c -> .o
-ASM ?= $(SRC:%.c=%.$(ASMNAME))
-OBJ ?= $(SRC:%.c=%.o)
+C_ASM ?= $(C_SRC:%.c=%.$(ASMNAME))
+C_OBJ ?= $(C_SRC:%.c=%.o)
+C_DEPS ?= $(C_SRC:%.c=%.d)
+
+CXX_ASM ?= $(CXX_SRC:%.c=%.$(ASMNAME))
+CXX_OBJ ?= $(CXX_SRC:%.c=%.o)
+CXX_DEPS ?= $(CXX_SRC:%.c=%.d)
+
+ASM ?= $(C_ASM) $(CXX_ASM)
+OBJ ?= $(C_OBJ) $(CXX_OBJ)
+DEPS ?= $(C_DEPS) $(CXX_DEPS)
 
 # Here we remove all paths from the given object and source file
 # names; you can echo these in commands and get slightly tidier output.
@@ -100,8 +114,10 @@ $(PROJ): $(OBJ)
 
 # Generate object files; output assembly listings alongside.  
 %.o : %.c
-	@echo CC $(notdir $+)
-	$(Q)$(CC) $(CFLAGS) $(ASMFLAGS)$(+:%.c=%.$(ASMNAME)) -c $+ -o $@
+	@echo CC $(notdir $<)
+	$(Q)$(CC) $(CFLAGS) $(ASMFLAGS)$(<:%.c=%.$(ASMNAME)) -c $< -o $@
+
+$(OBJ) : $(HDR)
 
 # Remove executable, object and assembly files
 clean:
