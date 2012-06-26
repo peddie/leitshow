@@ -44,8 +44,8 @@ Run
 
     ./leitshow
 
-At this point, I sometimes use the `pavucontrol` program to choose
-what audio stream to send to the lightshow program.  When I don't
+At this point, we sometimes use the `pavucontrol` program to choose
+what audio stream to send to the lightshow program.  When we don't
 explicitly assign a channel with `pavucontrol`, pulseaudio sometimes
 gives the lightshow the microphone audio stream by default.
 
@@ -55,16 +55,68 @@ Customize
 The lightshow will attempt to send commands via `/dev/ttyUSB0`.  You
 can change this, along with the number of channels and a few other
 things, in the `#define`s section at the beginning of `test.c`.
+Below, we highlight the most useful parameters for tuning.
+
+### Calculation of statistics
+
+Right now we just calculate the power from the complex FFT data.  You
+could use the phase data for something, or maybe decorrelate based on
+the complex dot product.
+
+ - `BUFSIZE` lets you adjust how big the chunks of PulseAudio data
+   are.  The smaller this is, the more often you'll recompute things
+   and send commands.  Keep it a power of 2 for maximum FFTW speed.
+
+ - `BUFFER_CYCLE` lets you reuse some of the audio data (a value of 1
+   doesn't reuse any; larger reuses that many in a window).  This
+   smooths things out and gives a lower minimum frequency at a given
+   update rate.
+
+ - `BIN_SHRINKAGE` makes the light show look at only the bottom
+   portion of the frequency spectrum.
+
+### Channel gain adaptation (`CHAN_GAIN`)
+
+ - `CHAN_GAIN_FILTER_CUTOFF_HZ` is the cutoff frequency for the
+   adaptive loop that adjusts channel gains to keep all channels
+   active.
+
+ - `CHAN_GAIN_GOAL_ACTIVITY` is roughly how much (from 0 to 1) power
+   we want each channel to have.  The gains will slowly adapt to match
+   the actual powers to these values.
+
+You can probably figure out the rest, but they're not as important.
+
+### Differentiation and decorrelation (`DECORR`)
+
+ - `DECORR_BASE_CHANNEL` is the index of the channel from which the
+   others will compute difference signals.
+
+ - `DECORR_PERCENT_DERIV` is what fraction (from 0 to 1) of the
+   non-base channels will be computed from the direct derivative of
+   that frequency bin signal.  The rest will come from differencing
+   with the base channel.
+
+### Thresholding (`THRESH`)
+
+Thresholding is like the channel gain adaptation, but it turns the
+channels completely off to keep things interesting.
+
+ - `THRESH_FILTER_CUTOFF_HZ` and `THRESH_GOAL_ACTIVITY` are just like
+   the corresponding values for `CHAN_GAIN`.  The lightshow will
+   slowly adapt the thresholds to keep the channel on for
+   `THRESH_GOAL_ACTIVITY[i]` of the time and off for the rest.
+
+### Envelope filtering (`BIN_FILTER`)
+
+ - `BIN_FILTER_CUTOFF_HZ` is the array of cutoff frequencies for
+   low-pass filters on each channel.  Don't make these too fast, or
+   the light show will get super flickery.
 
 Bugs
 ----------
 
-PulseAudio seems to like to send the program the microphone stream
-rather than the music stream.  Not sure if this can be worked around
-or if I need to switch to using JACK.
-
-The lightshow doesn't work that well as a music-synced lightshow; it's
-not that enjoyable to watch.  More algorithm development is needed.
+Please let me know!
 
 Thanks
 -----------
@@ -76,5 +128,7 @@ have taken a lot longer.  That lightshow was written, at various
 times, by Frostbyte, Penguin, sMark, Elmo and Knosepiq.
 
 Henry Hallam, as is his custom, got all the hardware working in a
-remarkably short period of time.
+remarkably short period of time (and helped me resurrect it over the
+phone!)
 
+Dany (Knosepiq) provided endless advice and suggestions for tuning.
