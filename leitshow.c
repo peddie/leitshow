@@ -121,23 +121,23 @@ calc_bins(float bins[NUM_CHANNELS],
           const float time_data[AUDIO_SIZE] __attribute__((unused)),
           const fftwf_complex freq_data[REAL_FFT_SIZE])
 {
-  int i;
-  float binfilter[NUM_CHANNELS] = BIN_FILTER_CUTOFF_HZ;
-
   /* Compute binwise statistics */
   float bin_phases[NUM_CHANNELS];
   calc_stats(freq_data, bins, bin_phases);
 
   /* Scale bin magnitudes for output. */
   array_scale(bins, OUTPUT_PRESCALE, NUM_CHANNELS);
-  
+}
+
+static inline void
+lpf_bins(float bins[NUM_CHANNELS])
+{
   /* Low-pass filter each channel (set the performance with
    * BIN_FILTER_CUTOFF_HZ).  */
-  for (i = 0; i < NUM_CHANNELS; i++) {
+  const float binfilter[NUM_CHANNELS] = BIN_FILTER_CUTOFF_HZ;
+  for (int i = 0; i < NUM_CHANNELS; i++)
     bins_old[i] = bins[i] = binfilter[i]*BIN_FILTER_CONSTANT * bins[i]
         + (1 - binfilter[i]*BIN_FILTER_CONSTANT) * bins_old[i];
-/*     DBGPRINT(stderr, "%f ", bins[i]); */
-  }
 }
 
 static void
@@ -159,6 +159,8 @@ set_channels(uint8_t channel[NUM_CHANNELS],
   /* Adjust for better activity */
   gain_adjust_bins(bins, filter_state, gains);
 
+  /* Low-pass output signals */
+  lpf_bins(bins);
   
   /* Threshold for better activity */
   threshold_bins(bins, thresh_filter_state, thresholds);
