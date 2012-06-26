@@ -34,6 +34,11 @@ int bin_bounds[NUM_BOUNDS];
 /* Power values for each channel at the last timestep */
 float bins_old[NUM_CHANNELS];
 
+/* Activity filter state */
+float filter_state[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY;
+/* Channel gains */
+float gains[NUM_CHANNELS] = CHANNEL_GAIN;
+
 static int
 serial_setup(const char *device)
 {
@@ -126,7 +131,7 @@ calc_bins(float bins[NUM_CHANNELS],
   for (i = 0; i < NUM_CHANNELS; i++) {
     bins_old[i] = bins[i] = binfilter[i]*BIN_FILTER_CONSTANT * bins[i]
         + (1 - binfilter[i]*BIN_FILTER_CONSTANT) * bins_old[i];
-    DBGPRINT(stderr, "%f ", bins[i]);
+/*     DBGPRINT(stderr, "%f ", bins[i]); */
   }
 }
 
@@ -140,7 +145,13 @@ set_channels(uint8_t channel[NUM_CHANNELS],
   /* Make sure we don't end up accidentally reusing data. */
   for (i=0; i<NUM_CHANNELS; i++) bins[i]=0;
 
+  /* Calculate values based on audio */
   calc_bins(bins, time_data, freq_data);
+
+  /* Adjust for better activity */
+  gain_adjust_bins(bins, filter_state, gains);
+
+  /* Convert to 8-bit binary */
   clip_and_convert_channels(channel, bins);
 }
 
@@ -180,12 +191,16 @@ main(int argc __attribute__((unused)),
 
   memset(buf, 0, AUDIO_BYTES*BUFFER_CYCLE);
   fprintf(stderr, 
-          "AUDIO_BYTES = %d, AUDIO_SIZE = %d, REAL_FFT_SIZE = %d, BIN_FILTER_CONSTANT = %f, FREQS_PER_CHANNEL = %d\n", 
-          AUDIO_BYTES, AUDIO_SIZE, REAL_FFT_SIZE, BIN_FILTER_CONSTANT, FREQS_PER_CHANNEL);
+          "AUDIO_BYTES = %d, AUDIO_SIZE = %d, REAL_FFT_SIZE = %d, "
+          "BIN_FILTER_CONSTANT = %f, FREQS_PER_CHANNEL = %d\n", 
+          AUDIO_BYTES, AUDIO_SIZE, REAL_FFT_SIZE,
+          BIN_FILTER_CONSTANT, FREQS_PER_CHANNEL);
+  fprintf(stderr, "DT = %lf, CHAN_GAIN_FILTER_CONSTANT = %lf\n",
+          ((double)BUFSIZE)/((double)AUDIO_SAMPLE_RATE), CHAN_GAIN_FILTER_CONSTANT);
 
   /* Initialize bin boundaries. */
-  for (i = 0; i < NUM_BOUNDS; i++) {
-    bin_bounds[i] = FREQS_PER_CHANNEL * (i + 1);
+  for (int j = 0; j < NUM_BOUNDS; j++) {
+    bin_bounds[j] = FREQS_PER_CHANNEL * (j + 1);
   }
   
   for (;;) {

@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "util.h"
 #include "config.h"
@@ -28,6 +29,46 @@ create_bins(float bins[NUM_CHANNELS],
 
     bins[j] += data[i];
   }
+}
+
+static inline float
+filter_bin(const float bin, const float bin_old, const float cutoff_hz)
+{
+  return bin*CHAN_GAIN_FILTER_CONSTANT*cutoff_hz
+      + (1 - cutoff_hz*CHAN_GAIN_FILTER_CONSTANT)*bin_old;
+}
+
+void
+gain_adjust_bins(float bins[NUM_CHANNELS],
+                 float filter_state[NUM_CHANNELS],
+                 float gains[NUM_CHANNELS])
+{
+  /* Constants from configuration file */
+  const float cutoffs[NUM_CHANNELS] = CHAN_GAIN_FILTER_CUTOFF_HZ;
+  const float act_goal[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY;
+
+  /* Scale each bin's signal by the corresponding gain. */
+  for (int i = 0; i < NUM_CHANNELS; i++) {
+    bins[i] *= gains[i];
+    
+    /* Update our estimate of this channel's average power. */
+    filter_state[i] = filter_bin(bins[i], filter_state[i], cutoffs[i]);
+
+    /* Update the channel gain by feedback */
+    float update = (act_goal[i] - filter_state[i]) / fabs(filter_state[i]);
+
+    /* If we're saturating or not using a channel, get out of there! */
+    float edgegain = 1;
+    if (bins[i] > 1 || bins[i] <= 0)
+      edgegain = 50;
+
+    if (fabs(update) > CHAN_GAIN_UPDATE_BUMP)
+      gains[i] += CHAN_GAIN_BUMP*update*edgegain;
+
+    fprintf(stderr, "%d(%2.2f:%2.2f::%2.3f:%2.2f) ",
+            i, bins[i], filter_state[i], update, gains[i]);
+  }
+  fprintf(stderr, "\t");
 }
 
 void
