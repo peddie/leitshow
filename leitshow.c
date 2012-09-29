@@ -180,12 +180,22 @@ main(int argc __attribute__((unused)),
     .rate = AUDIO_SAMPLE_RATE,
     .channels = NUM_AUDIO_CHANNELS
   };
+
+  static const pa_buffer_attr ba = {
+    .fragsize = 2222,   /* This is the only one that matters for us in
+                         * playback.  This gives 3-4 ms of latency on
+                         * a core i5 laptop. */
+    .maxlength = (uint32_t) -1,         /* Accept server defaults */
+    .minreq = (uint32_t) -1,
+    .prebuf = (uint32_t) -1,
+    .tlength = (uint32_t) -1,
+  };
   pa_simple *s = NULL;
   int error, serial, i;
   uint8_t ser[4+NUM_CHANNELS];
 
   /* Create the recording stream */
-  if (!(s = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error))) {
+  if (!(s = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, &ba, &error))) {
     fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
     goto finish;
   }
