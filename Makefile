@@ -71,7 +71,7 @@ ASMFLAGS ?= -fverbose-asm -Wa,-L,-alhsn=
 # speed up array code (gcc 4.5+, I think?); build object files for use
 # by the link-time optimizer (gcc 4.5+, I think, but only really works
 # in 4.6)
-OPTFLAGS ?= -Os -march=native -msse4.1 -ftree-vectorize -flto
+OPTFLAGS ?= -Os -march=native -ftree-vectorize -flto
 
 # Mega-warnings by default.  For many explanations, see
 # http://stackoverflow.com/questions/3375697/useful-gcc-flags-for-c
