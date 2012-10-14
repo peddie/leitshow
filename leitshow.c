@@ -145,25 +145,29 @@ set_channels(uint8_t channel[NUM_CHANNELS],
              const float time_data[AUDIO_SIZE], 
              const fftwf_complex freq_data[REAL_FFT_SIZE])
 {
-  int i;
   float bins[NUM_CHANNELS];
   /* Make sure we don't end up accidentally reusing data. */
-  for (i=0; i<NUM_CHANNELS; i++) bins[i]=0;
+  for (int i=0; i<NUM_CHANNELS; i++) bins[i]=0;
 
   /* Calculate values based on audio */
   calc_bins(bins, time_data, freq_data);
 
-  /* Differentiate most bins to decorrelate them */
-  diff_bins(bins, filter_state);
+  float total_bins = 0;
+  for (int i = 0; i < NUM_CHANNELS; i++) total_bins += bins[i];
   
-  /* Adjust for better activity */
-  gain_adjust_bins(bins, filter_state, gains);
+  if (fabs(total_bins) > 1e-5) {
+    /* Differentiate most bins to decorrelate them */
+    diff_bins(bins, filter_state);
+  
+    /* Adjust for better activity */
+    gain_adjust_bins(bins, filter_state, gains);
 
-  /* Low-pass output signals */
-  lpf_bins(bins);
+    /* Low-pass output signals */
+    lpf_bins(bins);
   
-  /* Threshold for better activity */
-  threshold_bins(bins, thresh_filter_state, thresholds);
+    /* Threshold for better activity */
+    threshold_bins(bins, thresh_filter_state, thresholds);
+  } else memcpy(bins, filter_state, sizeof(bins));
 
   /* Convert to 8-bit binary */
   clip_and_convert_channels(channel, bins);
