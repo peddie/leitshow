@@ -7,9 +7,9 @@
 #include "util.h"
 #include "config.h"
 
-#ifndef DEBUG
+#ifdef DEBUG
 #define DBGPRINT(format, ...) fprintf(stderr, __VA_ARGS__)
-#else 
+#else
 #define DBGPRINT(format, ...)
 #endif
 
@@ -50,7 +50,7 @@ gain_adjust_bins(float bins[NUM_CHANNELS],
   /* Scale each bin's signal by the corresponding gain. */
   for (int i = 0; i < NUM_CHANNELS; i++) {
     bins[i] *= gains[i];
-    
+
     /* Update our estimate of this channel's average power. */
     filter_state[i] = filter_bin(bins[i], filter_state[i], cutoffs[i]);
 
@@ -64,11 +64,15 @@ gain_adjust_bins(float bins[NUM_CHANNELS],
 
     if (fabs(update) > CHAN_GAIN_UPDATE_BUMP)
       gains[i] += CHAN_GAIN_BUMP*update*edgegain;
-
-    fprintf(stderr, "%d(%2.2f:%2.2f::%2.3f:%2.2f) ",
+    if (gains[i] > CHAN_GAIN_MAX) gains[i] = CHAN_GAIN_MAX;
+#ifdef DEBUG
+    fprintf(stderr, "%d(%.2f:%.2f::%.3f:%.2f) ",
             i, bins[i], filter_state[i], update, gains[i]);
+#else
+    fprintf(stderr, "%.2f ", gains[i]);
+#endif  /* DEBUG */
   }
-  fprintf(stderr, "\t");
+  fprintf(stderr, "    ");
 }
 
 static inline float
@@ -117,7 +121,7 @@ threshold_bins(float bins[NUM_CHANNELS],
     else if (thresholds[i] < THRESH_MIN)
       thresholds[i] = THRESH_MIN;
     
-    fprintf(stderr, " %f", thresholds[i]);
+    fprintf(stderr, " %.2f", thresholds[i]);
   }
   fprintf(stderr, "\t");
 }
@@ -157,7 +161,7 @@ clip_and_convert_channels(uint8_t channel[NUM_CHANNELS],
     channel[i] = (uint8_t) (255 * out);
     DBGPRINT(stderr, "%d ", channel[i]);
   }
-  DBGPRINT(stderr, "\n");
+  fprintf(stderr, "\n");
   tmp = channel[0];
   channel[0] = channel[2]; 
   channel[2] = tmp;
