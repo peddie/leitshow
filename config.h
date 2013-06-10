@@ -23,10 +23,6 @@
 #define NUM_CHANNELS 4
 #define NUM_BOUNDS (NUM_CHANNELS - 1)
 
-/* This is a fixed scaling number, but really each channel should
- * slowly adapt its outputs to the amount of power in it. */
-#define OUTPUT_PRESCALE 1.0
-
 /* Envelope filtering config */
 #define CHANNEL_GAIN {0.3, 1.5, 1.5, 0.5}
 #define BIN_FILTER_CUTOFF_HZ {5, 3, 3, 5}

@@ -125,9 +125,6 @@ calc_bins(float bins[NUM_CHANNELS],
   /* Compute binwise statistics */
   float bin_phases[NUM_CHANNELS];
   calc_stats(freq_data, bins, bin_phases);
-
-  /* Scale bin magnitudes for output. */
-  array_scale(bins, OUTPUT_PRESCALE, NUM_CHANNELS);
 }
 
 static inline void
