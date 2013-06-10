@@ -30,7 +30,7 @@
 struct termios tio;
 
 /* Bin boundary indices within the FFT data */
-int bin_bounds[NUM_BOUNDS];
+int bin_bounds[NUM_BOUNDS] = {256, 512, 2048};
 /* Power values for each channel at the last timestep */
 float bins_old[NUM_CHANNELS];
 
@@ -218,21 +218,15 @@ main(int argc __attribute__((unused)),
   fftwf_plan plan = fftwf_plan_dft_r2c_1d(AUDIO_SIZE*BUFFER_CYCLE, buf, out, FFTW_MEASURE);
 
   memset(buf, 0, AUDIO_BYTES*BUFFER_CYCLE);
-  fprintf(stderr, 
+  fprintf(stderr,
           "AUDIO_BYTES = %d, AUDIO_SIZE = %d, REAL_FFT_SIZE = %d, "
-          "BIN_FILTER_CONSTANT = %f, FREQS_PER_CHANNEL = %d\n", 
+          "BIN_FILTER_CONSTANT = %f\n",
           AUDIO_BYTES, AUDIO_SIZE, REAL_FFT_SIZE,
-          BIN_FILTER_CONSTANT, FREQS_PER_CHANNEL);
+          BIN_FILTER_CONSTANT);
   fprintf(stderr, "DT = %lf, CHAN_GAIN_FILTER_CONSTANT = %lf\n",
           ((double)BUFSIZE)/((double)AUDIO_SAMPLE_RATE), CHAN_GAIN_FILTER_CONSTANT);
 
-  /* Initialize bin boundaries. */
-  for (int j = 0; j < NUM_BOUNDS; j++) {
-    bin_bounds[j] = FREQS_PER_CHANNEL * (j + 1);
-  }
-  
-  for (;;) {
-
+  while (1) {
     /* Cycle audio data through the buffer */
     for (i=BUFFER_CYCLE-2; i>=0; i--)
       memcpy(&buf[AUDIO_SIZE*(i+1)], &buf[AUDIO_SIZE*i], AUDIO_BYTES);
