@@ -105,6 +105,10 @@ LDSECFLAGS ?= -pie -Wl,-z,relro -Wl,-z,now
 CFLAGS = $(WARNFLAGS) $(OPTFLAGS) $(SECFLAGS) $(INCLUDES) $(DBGFLAGS)
 LDFLAGS = $(LDWARNFLAGS) $(LDOPTFLAGS) $(LDSECFLAGS) $(LIBS) $(LDDBGFLAGS) 
 
+ifdef DEBUG
+CFLAGS += -DDEBUG=$(DEBUG)
+endif  # DEBUG
+
 .PHONY: clean
 
 # Build the project
@@ -130,8 +134,9 @@ check-syntax: check-syntax-c check-syntax-cc
 
 check-syntax-c:
 ifneq (,$(findstring .c,$(C_SRC)))
-	@echo SYNTAX_CHECK $(C_SRC)
-	$(Q)$(CC) -fsyntax-only $(WARNFLAGS) $(INCLUDES) $(C_SRC)
+	@echo SYNTAX_CHECK $(CHK_SOURCES)
+	$(Q)$(CC) -fsyntax-only $(WARNFLAGS) $(INCLUDES) $(CHK_SOURCES)
+	$(Q)cpplint $(CHK_SOURCES)
 endif
 
 check-syntax-cc:
