@@ -33,7 +33,9 @@
 struct termios tio;
 
 /* Bin boundary indices within the FFT data */
-int bin_bounds[NUM_BOUNDS] = {256, 512, 2048};
+int bin_bounds[NUM_BOUNDS] = {256 * BUFSIZE / 2048,
+                              512 * BUFSIZE / 2048,
+                              2048 * BUFSIZE / 2048};
 /* Power values for each channel at the last timestep */
 float bins_old[NUM_CHANNELS];
 

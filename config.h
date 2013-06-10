@@ -9,7 +9,7 @@
 #include <termios.h>
 
 /* Input config */
-#define BUFSIZE 2048
+#define BUFSIZE 1024
 #define NUM_AUDIO_CHANNELS 1
 #define AUDIO_SIZE BUFSIZE * NUM_AUDIO_CHANNELS
 #define AUDIO_SAMPLE_RATE 44100
@@ -17,7 +17,8 @@
 
 /* FFT config */
 #define BUFFER_CYCLE 2
-#define REAL_FFT_SIZE ((((int) ((float) AUDIO_SIZE / 2)) * BUFFER_CYCLE))
+#define REAL_FFT_SIZE \
+  ((((int) ((float) AUDIO_SIZE / NUM_AUDIO_CHANNELS)) * BUFFER_CYCLE))
 
 /* Output config */
 #define NUM_CHANNELS 4
