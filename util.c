@@ -1,11 +1,14 @@
-/* Oasis Leitshow, handy utilities for any algorithm */
+/* Copyright 2013 Matt Peddie
+ * All rights reversed!
+ *
+ * Handy utilities for any algorithm */
 
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
 
-#include "util.h"
-#include "config.h"
+#include "./util.h"
+#include "./config.h"
 
 #ifdef DEBUG
 #define DBGPRINT(format, ...) fprintf(stderr, __VA_ARGS__)
@@ -16,14 +19,15 @@
 void
 create_bins(float bins[NUM_CHANNELS],
             const float data[REAL_FFT_SIZE],
-            const int boundaries[NUM_CHANNELS-1])
-{
+            const int boundaries[NUM_CHANNELS-1]) {
   int i, j;
-  for (i=0, j=0; i<REAL_FFT_SIZE; i++) {
+  for (i = 0, j = 0; i < REAL_FFT_SIZE; i++) {
     if (i > boundaries[j]) {
       /* Next bin! */
-      if (j==0) bins[j] = bins[j] / boundaries[j];
-      else bins[j] = bins[j] / (boundaries[j] - boundaries[j-1]);
+      if (0 == j)
+        bins[j] = bins[j] / boundaries[j];
+      else
+        bins[j] = bins[j] / (boundaries[j] - boundaries[j-1]);
       j++;
     }
 
@@ -32,8 +36,7 @@ create_bins(float bins[NUM_CHANNELS],
 }
 
 static inline float
-filter_bin(const float bin, const float bin_old, const float cutoff_hz)
-{
+filter_bin(const float bin, const float bin_old, const float cutoff_hz) {
   return bin*CHAN_GAIN_FILTER_CONSTANT*cutoff_hz
       + (1 - cutoff_hz*CHAN_GAIN_FILTER_CONSTANT)*bin_old;
 }
@@ -41,8 +44,7 @@ filter_bin(const float bin, const float bin_old, const float cutoff_hz)
 void
 gain_adjust_bins(float bins[NUM_CHANNELS],
                  float filter_state[NUM_CHANNELS],
-                 float gains[NUM_CHANNELS])
-{
+                 float gains[NUM_CHANNELS]) {
   /* Constants from configuration file */
   const float cutoffs[NUM_CHANNELS] = CHAN_GAIN_FILTER_CUTOFF_HZ;
   const float act_goal[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY;
@@ -76,8 +78,7 @@ gain_adjust_bins(float bins[NUM_CHANNELS],
 }
 
 static inline float
-bin_above_threshold(const float bin, const float threshold)
-{
+bin_above_threshold(const float bin, const float threshold) {
   if (bin < threshold)
     return 0;
   return (bin - threshold) * (1 / (1 - threshold));
@@ -85,23 +86,20 @@ bin_above_threshold(const float bin, const float threshold)
 
 static inline float
 binary_act_filter(const float bin, const float threshold,
-                  const float bin_old, const float cutoff_hz)
-{
+                  const float bin_old, const float cutoff_hz) {
   if (bin < threshold)
     return (1 - cutoff_hz*THRESH_FILTER_CONSTANT)*bin_old;
   return CHAN_GAIN_FILTER_CONSTANT*cutoff_hz
       + (1 - cutoff_hz*CHAN_GAIN_FILTER_CONSTANT)*bin_old;
-
 }
 
 void
 threshold_bins(float bins[NUM_CHANNELS],
                float filter_state[NUM_CHANNELS],
-               float thresholds[NUM_CHANNELS])
-{
+               float thresholds[NUM_CHANNELS]) {
   const float cutoffs[NUM_CHANNELS] = THRESH_FILTER_CUTOFF_HZ;
   const float goal[NUM_CHANNELS] = THRESH_GOAL_ACTIVITY;
-  
+
   for (int i = 0; i < NUM_CHANNELS; i++) {
     /* Threshold the bin */
     bins[i] = bin_above_threshold(bins[i], thresholds[i]);
@@ -120,7 +118,7 @@ threshold_bins(float bins[NUM_CHANNELS],
       thresholds[i] = THRESH_MAX;
     else if (thresholds[i] < THRESH_MIN)
       thresholds[i] = THRESH_MIN;
-    
+
     fprintf(stderr, " %.2f", thresholds[i]);
   }
   fprintf(stderr, "\t");
@@ -128,11 +126,10 @@ threshold_bins(float bins[NUM_CHANNELS],
 
 void
 diff_bins(float bins[NUM_CHANNELS],
-          const float filter_state[NUM_CHANNELS] __attribute__((unused)))
-{
+          const float filter_state[NUM_CHANNELS] __attribute__((unused))) {
   for (int i = 0; i < NUM_CHANNELS; i++) {
     if (i == DECORR_BASE_CHANNEL) continue;
-    
+
     const float ratio = filter_state[i] / filter_state[DECORR_BASE_CHANNEL];
     /* Alternate way to compute ratio */
     /* const float act[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY; */
@@ -146,13 +143,12 @@ diff_bins(float bins[NUM_CHANNELS],
 }
 
 void
-clip_and_convert_channels(uint8_t channel[NUM_CHANNELS], 
-                          const float bins[NUM_CHANNELS])
-{
+clip_and_convert_channels(uint8_t channel[NUM_CHANNELS],
+                          const float bins[NUM_CHANNELS]) {
   int i;
   uint8_t tmp;
   float out;
-  for (i=0; i<NUM_CHANNELS; i++) {
+  for (i = 0; i < NUM_CHANNELS; i++) {
     /* Make sure we don't exceed 255.  */
     // out = bins[NUM_CHANNELS-1-i];
     out = bins[i];
@@ -163,8 +159,6 @@ clip_and_convert_channels(uint8_t channel[NUM_CHANNELS],
   }
   fprintf(stderr, "\n");
   tmp = channel[0];
-  channel[0] = channel[2]; 
+  channel[0] = channel[2];
   channel[2] = tmp;
 }
-
-

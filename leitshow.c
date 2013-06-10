@@ -1,4 +1,7 @@
-/* The Oasis Leitshow */
+/* Copyright 2013 Matt Peddie
+ * All rights reversed!
+ *
+ * The Oasis Leitshow */
 
 #include <stdio.h>
 #include <unistd.h>
@@ -16,14 +19,14 @@
 #include <termios.h>
 #include <fcntl.h>
 
-#include "config.h"
-#include "util.h"
+#include "./config.h"
+#include "./util.h"
 
-#include "arraymath.h"
+#include "./arraymath.h"
 
 #ifndef DEBUG
 #define DBGPRINT(format, ...) fprintf(stderr, __VA_ARGS__)
-#else 
+#else
 #define DBGPRINT(format, ...)
 #endif
 
@@ -45,12 +48,12 @@ float thresh_filter_state[NUM_CHANNELS] = THRESH_GOAL_ACTIVITY;
 float thresholds[NUM_CHANNELS];
 
 static int
-serial_setup(const char *device)
-{
+serial_setup(const char *device) {
   int rc;
   int serial = open(device, O_RDWR | O_NOCTTY);
-  if (serial < 0) { 
-    fprintf(stderr, "Can't open serial port '%s', %s\n", device, strerror(errno));
+  if (serial < 0) {
+    fprintf(stderr,
+            "Can't open serial port '%s', %s\n", device, strerror(errno));
     return -1;
   }
   memset(&tio, 0, sizeof(tio));
@@ -58,17 +61,18 @@ serial_setup(const char *device)
   tio.c_iflag = TTY_INPUT_OPTS;
   tio.c_oflag = TTY_OUTPUT_OPTS;
   tio.c_lflag = TTY_LOCAL_OPTS;
-  tio.c_cc[VTIME] = 0;     
-  tio.c_cc[VMIN] = 1;     
+  tio.c_cc[VTIME] = 0;
+  tio.c_cc[VMIN] = 1;
   cfmakeraw(&tio);
   cfsetispeed(&tio, BAUDRATE);
   cfsetospeed(&tio, BAUDRATE);
   tcflush(serial, TCIFLUSH);
 
-  if ((rc = tcsetattr(serial,TCSANOW,&tio)) < 0) {
-    fprintf(stderr, "Unable to set TTY attributes, tcsetattr returned %u\n", rc);
+  if ((rc = tcsetattr(serial, TCSANOW, &tio)) < 0) {
+    fprintf(stderr, "Unable to set TTY attributes, tcsetattr returned %u\n",
+            rc);
     return -2;
-  }    
+  }
 
   return serial;
 }
@@ -76,11 +80,10 @@ serial_setup(const char *device)
 static inline void
 calc_fft_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
                float freq_powers[REAL_FFT_SIZE],
-               float freq_phases[REAL_FFT_SIZE])
-{
+               float freq_phases[REAL_FFT_SIZE]) {
   for (int i = 0; i < REAL_FFT_SIZE; i++) {
     freq_powers[i] = sqrt(freq_data[i][0]*freq_data[i][0]
-                         + freq_data[i][1]*freq_data[i][1]);
+                          + freq_data[i][1]*freq_data[i][1]);
     freq_phases[i] = atan2(freq_data[i][1], freq_data[i][0]);
   }
 }
@@ -88,12 +91,11 @@ calc_fft_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
 static void
 calc_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
            float bin_powers[NUM_CHANNELS],
-           float bin_phases[NUM_CHANNELS])
-{
+           float bin_phases[NUM_CHANNELS]) {
   int i;
   float freq_powers[REAL_FFT_SIZE], freq_phases[REAL_FFT_SIZE];
   calc_fft_stats(freq_data, freq_powers, freq_phases);
-  
+
   for (i = 0; i < NUM_CHANNELS; i++) {
     /* Compute safe indices */
     int min_ind, max_ind, bin_size;
@@ -117,10 +119,9 @@ calc_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
 }
 
 static void
-calc_bins(float bins[NUM_CHANNELS], 
+calc_bins(float bins[NUM_CHANNELS],
           const float time_data[AUDIO_SIZE] __attribute__((unused)),
-          const fftwf_complex freq_data[REAL_FFT_SIZE])
-{
+          const fftwf_complex freq_data[REAL_FFT_SIZE]) {
   /* Compute binwise statistics */
   float bin_phases[NUM_CHANNELS];
   calc_stats(freq_data, bins, bin_phases);
@@ -130,8 +131,7 @@ calc_bins(float bins[NUM_CHANNELS],
 }
 
 static inline void
-lpf_bins(float bins[NUM_CHANNELS])
-{
+lpf_bins(float bins[NUM_CHANNELS]) {
   /* Low-pass filter each channel (set the performance with
    * BIN_FILTER_CUTOFF_HZ).  */
   const float binfilter[NUM_CHANNELS] = BIN_FILTER_CUTOFF_HZ;
@@ -141,43 +141,41 @@ lpf_bins(float bins[NUM_CHANNELS])
 }
 
 static void
-set_channels(uint8_t channel[NUM_CHANNELS], 
-             const float time_data[AUDIO_SIZE], 
-             const fftwf_complex freq_data[REAL_FFT_SIZE])
-{
+set_channels(uint8_t channel[NUM_CHANNELS],
+             const float time_data[AUDIO_SIZE],
+             const fftwf_complex freq_data[REAL_FFT_SIZE]) {
   float bins[NUM_CHANNELS];
   /* Make sure we don't end up accidentally reusing data. */
-  for (int i=0; i<NUM_CHANNELS; i++) bins[i]=0;
+  for (int i = 0; i < NUM_CHANNELS; i++) bins[i] = 0;
 
   /* Calculate values based on audio */
   calc_bins(bins, time_data, freq_data);
 
   float total_bins = 0;
   for (int i = 0; i < NUM_CHANNELS; i++) total_bins += bins[i];
-  
+
   if (fabs(total_bins) > 1e-5) {
     /* Differentiate most bins to decorrelate them */
     diff_bins(bins, filter_state);
-  
+
     /* Adjust for better activity */
     gain_adjust_bins(bins, filter_state, gains);
 
     /* Low-pass output signals */
     lpf_bins(bins);
-  
+
     /* Threshold for better activity */
     threshold_bins(bins, thresh_filter_state, thresholds);
-  } else memcpy(bins, filter_state, sizeof(bins));
+  } else { memcpy(bins, filter_state, sizeof(bins)); }
 
   /* Convert to 8-bit binary */
   clip_and_convert_channels(channel, bins);
 }
 
 
-int 
-main(int argc __attribute__((unused)), 
-     char*argv[] __attribute__((unused))) 
-{
+int
+main(int argc __attribute__((unused)),
+     char*argv[] __attribute__((unused))) {
   /* The sample type to use */
   static const pa_sample_spec ss = {
     .format = PA_SAMPLE_FLOAT32NE,
@@ -186,9 +184,9 @@ main(int argc __attribute__((unused)),
   };
 
   static const pa_buffer_attr ba = {
-    .fragsize = 2222,   /* This is the only one that matters for us in
-                         * playback.  This gives 3-4 ms of latency on
-                         * a core i5 laptop. */
+    /* This is the only one that matters for us in playback.  This
+     * gives 3-4 ms of latency on a core i5 laptop. */
+    .fragsize = 2222,
     .maxlength = (uint32_t) -1,         /* Accept server defaults */
     .minreq = (uint32_t) -1,
     .prebuf = (uint32_t) -1,
@@ -199,8 +197,10 @@ main(int argc __attribute__((unused)),
   uint8_t ser[4+NUM_CHANNELS];
 
   /* Create the recording stream */
-  if (!(s = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, &ba, &error))) {
-    fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
+  if (!(s = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss,
+                          NULL, &ba, &error))) {
+    fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n",
+            pa_strerror(error));
     goto finish;
   }
 
@@ -215,7 +215,8 @@ main(int argc __attribute__((unused)),
   /* Set up the FFT stuff */
   float *buf = fftwf_malloc(AUDIO_BYTES * BUFFER_CYCLE);
   fftwf_complex *out = fftwf_malloc(sizeof(fftwf_complex) * REAL_FFT_SIZE);
-  fftwf_plan plan = fftwf_plan_dft_r2c_1d(AUDIO_SIZE*BUFFER_CYCLE, buf, out, FFTW_MEASURE);
+  fftwf_plan plan = fftwf_plan_dft_r2c_1d(AUDIO_SIZE*BUFFER_CYCLE,
+                                          buf, out, FFTW_MEASURE);
 
   memset(buf, 0, AUDIO_BYTES*BUFFER_CYCLE);
   fprintf(stderr,
@@ -224,16 +225,18 @@ main(int argc __attribute__((unused)),
           AUDIO_BYTES, AUDIO_SIZE, REAL_FFT_SIZE,
           BIN_FILTER_CONSTANT);
   fprintf(stderr, "DT = %lf, CHAN_GAIN_FILTER_CONSTANT = %lf\n",
-          ((double)BUFSIZE)/((double)AUDIO_SAMPLE_RATE), CHAN_GAIN_FILTER_CONSTANT);
+          ((double)BUFSIZE)/((double)AUDIO_SAMPLE_RATE),
+          CHAN_GAIN_FILTER_CONSTANT);
 
   while (1) {
     /* Cycle audio data through the buffer */
-    for (i=BUFFER_CYCLE-2; i>=0; i--)
+    for (i = BUFFER_CYCLE-2; i >= 0; i--)
       memcpy(&buf[AUDIO_SIZE*(i+1)], &buf[AUDIO_SIZE*i], AUDIO_BYTES);
 
     /* Record some data ... */
     if (pa_simple_read(s, (uint8_t *) buf, AUDIO_BYTES, &error) < 0) {
-      fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
+      fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n",
+              pa_strerror(error));
       goto finish;
     }
 
@@ -246,8 +249,7 @@ main(int argc __attribute__((unused)),
     error = write(serial, ser, 4+NUM_CHANNELS);
   }
 
-finish:
-
+ finish:
   /* fftwf_free(out);   */
   /* fftwf_free(buf); */
   /* fftwf_destroy_plan(plan); */
@@ -256,4 +258,3 @@ finish:
 
   return 0;
 }
-
