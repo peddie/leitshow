@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="6.4">
+<eagle version="6.3">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -8165,6 +8165,7 @@ wire to board 2.54 mm (0.100") pitch header</description>
 <part name="J8" library="con-molex" deviceset="C-GRID-02" device="-70553"/>
 <part name="P+9" library="supply1" deviceset="+12V" device=""/>
 <part name="J9" library="SparkFun-Connectors" deviceset="M25" device="PTH"/>
+<part name="P+10" library="supply1" deviceset="+5V" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -8234,6 +8235,7 @@ wire to board 2.54 mm (0.100") pitch header</description>
 <instance part="J8" gate="-1" x="-60.96" y="-78.74"/>
 <instance part="P+9" gate="1" x="-63.5" y="-73.66"/>
 <instance part="J9" gate="G$1" x="-2.54" y="-15.24" rot="MR0"/>
+<instance part="P+10" gate="1" x="-55.88" y="15.24"/>
 </instances>
 <busses>
 </busses>
@@ -8464,6 +8466,17 @@ wire to board 2.54 mm (0.100") pitch header</description>
 <wire x1="86.36" y1="-83.82" x2="83.82" y2="-83.82" width="0.1524" layer="91"/>
 <pinref part="C3" gate="G$1" pin="1"/>
 <junction x="86.36" y="-83.82"/>
+</segment>
+<segment>
+<pinref part="P+10" gate="1" pin="+5V"/>
+<pinref part="MOD1" gate="G$1" pin="5V"/>
+<wire x1="-55.88" y1="12.7" x2="-48.26" y2="12.7" width="0.1524" layer="91"/>
+<pinref part="MOD1" gate="G$1" pin="5V2"/>
+<pinref part="J9" gate="G$1" pin="24"/>
+<wire x1="-12.7" y1="12.7" x2="-17.78" y2="12.7" width="0.1524" layer="91"/>
+<wire x1="-48.26" y1="12.7" x2="-17.78" y2="12.7" width="0.1524" layer="91"/>
+<junction x="-48.26" y="12.7"/>
+<junction x="-17.78" y="12.7"/>
 </segment>
 </net>
 <net name="CH0_L" class="0">
@@ -8816,13 +8829,6 @@ wire to board 2.54 mm (0.100") pitch header</description>
 <pinref part="MOD1" gate="G$1" pin="VDD3"/>
 <pinref part="J9" gate="G$1" pin="23"/>
 <wire x1="-12.7" y1="10.16" x2="-17.78" y2="10.16" width="0.1524" layer="91"/>
-</segment>
-</net>
-<net name="N$31" class="0">
-<segment>
-<pinref part="MOD1" gate="G$1" pin="5V2"/>
-<pinref part="J9" gate="G$1" pin="24"/>
-<wire x1="-12.7" y1="12.7" x2="-17.78" y2="12.7" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
