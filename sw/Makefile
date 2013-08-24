@@ -23,7 +23,8 @@ DEP_PKG = python-yaml autoconf libusb-1.0-0-dev doxygen doxygen-latex
 SRC ?= $(PROJ).c \
        adc.c \
        usart.c \
-       timer.c
+       timer.c \
+       pwm.c
 
 SIZECUT = --specs=nano.specs
 
