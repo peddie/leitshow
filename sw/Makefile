@@ -22,7 +22,8 @@ DEP_PKG = python-yaml autoconf libusb-1.0-0-dev doxygen doxygen-latex
 # What C or C++ files must we compile to make the executable?
 SRC ?= $(PROJ).c \
        adc.c \
-       usart.c
+       usart.c \
+       timer.c
 
 SIZECUT = --specs=nano.specs
 

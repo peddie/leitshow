@@ -36,9 +36,6 @@
 
 #include "./util.h"
 // Debugging includes
-#include "../apps/real_time_clock.h"
-#include "./led.h"
-
 #include "./timer.h"
 
 /// These are conversions for the timers between ticks and microseconds
