@@ -69,7 +69,8 @@ int main(void) {
     adc_get_dma_results(adc);
     adc_poll();
 
-    leitshow_step(adc[0], brt);
+    //    leitshow_step(adc[0], brt);
+    analysis_callback(adc[0], brt);
     set_all_chans(brt);
 
     if (tock_us(ts) > PERIOD_US)

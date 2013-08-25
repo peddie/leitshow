@@ -1,0 +1,74 @@
+/* Copyright 2013 Matthew Peddie <peddie@alum.mit.edu> */
+#include <arm_math.h>
+#include <math_helper.h>
+
+#include "./filterbank.h"
+
+arm_biquad_cascade_df2T_instance_f32 filters[NUM_FILTERS];
+
+float state[NUM_FILTERS * STATE_SIZE];
+
+/* These were generated with `runghc biquads.hs <NUM_FILTERS>` as a
+ * harmonic filter bank (cutoff frequency doubles each time). */
+float coeffs[NUM_FILTERS * NUM_COEFFS] = {
+  /* Coefficients for the lowest-frequency band, stage 0 */
+  5.87636746639867e-7, 1.175273493279734e-6, 5.87636746639867e-7, -1.9978306244147617, 0.9978329749617482,
+  /* Coefficients for the lowest-frequency band, stage 1 */
+  5.87636746639867e-7, 1.175273493279734e-6, 5.87636746639867e-7, -1.9978306244147617, 0.9978329749617482,
+  /* Coefficients for the next highest frequency band */
+  2.3480015207372814e-6, 4.696003041474563e-6, 2.3480015207372814e-6, -1.995661253914939, 0.9956706459210221,
+  2.3480015207372814e-6, 4.696003041474563e-6, 2.3480015207372814e-6, -1.995661253914939, 0.9956706459210221,
+  9.371697475264971e-6, 1.8743394950529942e-5, 9.371697475264971e-6, -1.9913225483591699, 0.9913600351490709,
+  9.371697475264971e-6, 1.8743394950529942e-5, 9.371697475264971e-6, -1.9913225483591699, 0.9913600351490709,
+  3.732519892929843e-5, 7.465039785859686e-5, 3.732519892929843e-5, -1.9826454185041167, 0.9827947192998339,
+  3.732519892929843e-5, 7.465039785859686e-5, 3.732519892929843e-5, -1.9826454185041167, 0.9827947192998339,
+  1.4802198653182094e-4, 2.960439730636419e-4, 1.4802198653182094e-4, -1.9652933726226904, 0.9658854605688175,
+  1.4802198653182094e-4, 2.960439730636419e-4, 1.4802198653182094e-4, -1.9652933726226904, 0.9658854605688175,
+  5.820761342360482e-4, 1.1641522684720964e-3, 5.820761342360482e-4, -1.9306064272196681, 0.9329347317566122,
+  5.820761342360482e-4, 1.1641522684720964e-3, 5.820761342360482e-4, -1.9306064272196681, 0.9329347317566122,
+  2.2515826568466324e-3, 4.503165313693265e-3, 2.2515826568466324e-3, -1.861361146829083, 0.8703674774564693,
+  2.2515826568466324e-3, 4.503165313693265e-3, 2.2515826568466324e-3, -1.861361146829083, 0.8703674774564693,
+  8.442692929079948e-3, 1.6885385858159897e-2, 8.442692929079948e-3, -1.723776172762509, 0.7575469444788289,
+  8.442692929079948e-3, 1.6885385858159897e-2, 8.442692929079948e-3, -1.723776172762509, 0.7575469444788289,
+  2.9954582208092474e-2, 5.990916441618495e-2, 2.9954582208092474e-2, -1.454243586251585, 0.5740619150839548,
+  2.9954582208092474e-2, 5.990916441618495e-2, 2.9954582208092474e-2, -1.454243586251585, 0.5740619150839548,
+  9.763107293781749e-2, 0.19526214587563498, 9.763107293781749e-2, -0.9428090415820632, 0.3333333333333333,
+  9.763107293781749e-2, 0.19526214587563498, 9.763107293781749e-2, -0.9428090415820632, 0.3333333333333333,
+  /* Coefficients for the highest frequency band. */
+  0.2928932188134524, 0.5857864376269049, 0.2928932188134524, -1.300707181133076e-16, 0.17157287525380988,
+  0.2928932188134524, 0.5857864376269049, 0.2928932188134524, -1.300707181133076e-16, 0.17157287525380988,
+};
+
+void
+filter_setup(void) {
+  for (int i = 0; i < NUM_FILTERS; i++)
+    arm_biquad_cascade_df2T_init_f32(&filters[i],
+                                     NUM_BIQUADS,
+                                     &coeffs[i * NUM_COEFFS],
+                                     &state[i * STATE_SIZE]);
+}
+
+void
+filter_step(uint32_t count, float input[], float output[]) {
+  float filters_out[count];
+
+  arm_biquad_cascade_df2T_f32(&filters[0], input, filters_out, count);
+  /* Last value in the output sequence is the band output value */
+  output[0] = filters_out[count - 1];
+
+  float sub = output[0];
+
+  for (int i = 1; i < NUM_FILTERS; i++) {
+    arm_biquad_cascade_df2T_f32(&filters[i], input, filters_out, count);
+    /* Output is the last value in the filter output sequence minus
+     * the accumulated "lower than this band" value. */
+    output[i] = filters_out[count - 1] - sub;
+    /* Add this output to the "lower than this band" state for the
+     * next band. */
+    sub += output[i];
+  }
+
+  /* The top frequency band is just the last input value minus the
+   * accumulated power for all the lower bands. */
+  output[NUM_BANDS - 1] = input[count - 1] - sub;
+}

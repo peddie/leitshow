@@ -14,7 +14,9 @@
 # What's the executable called?
 PROJ = main
 
-COMMON_DIR = ../../cosmogia/common
+CMSIS_DIR = /home/peddie/software/micro/sttools/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/CMSIS
+
+COMMON_DIR = /home/peddie/cosmogia/code/common
 OPENCM3_DIR = $(COMMON_DIR)/libopencm3/
 LDSCRIPT ?= stm32f4-discovery.ld
 DEP_PKG = python-yaml autoconf libusb-1.0-0-dev doxygen doxygen-latex
@@ -25,7 +27,8 @@ SRC ?= $(PROJ).c \
        usart.c \
        timer.c \
        pwm.c \
-       leitshow.c
+       leitshow.c \
+       filterbank.c
 
 SIZECUT = --specs=nano.specs
 
@@ -35,12 +38,17 @@ QUIET ?=
 HDR ?=
 
 # What directories must we include?
-INCLUDENAMES ?= $(OPENCM3_DIR)/include # e.g. ../mathlib; the makefile will add the -I
+INCLUDENAMES ?= $(OPENCM3_DIR)/include
+
+                # e.g. ../mathlib; the makefile will add the -I
 
 # With what libraries should we link?
-LIBNAMES ?= opencm3_stm32f4 # e.g. m gsl atlas; the makefile will add the -l
-LIBDIRS ?= $(OPENCM3_DIR)/lib $(OPENCM3_DIR)/lib/stm32/f4 # e.g. ../; the makefile will add the -L
+LIBNAMES ?= opencm3_stm32f4 arm_cortexM4lf_math # e.g. m gsl atlas; the makefile will add the -l
+LIBDIRS ?= $(CMSIS_DIR)/Lib/GCC $(OPENCM3_DIR)/lib $(OPENCM3_DIR)/lib/stm32/f4 # e.g. ../; the makefile will add the -L
 OTHERLIB ?=
+
+CMSIS_INCLUDES = -isystem$(CMSIS_DIR)/Include \
+                 -isystem$(CMSIS_DIR)/DSP_Lib/Examples/Common/Include
 
 # You can add custom compiler and linker flags here.  USERFLAGS gets
 # used by all compiler and linker calls, except when creating a static
@@ -48,7 +56,7 @@ OTHERLIB ?=
 #
 # Add -DCSMG_DEBUG_ESP here to run the debug port (USART2) as a
 # packetized IO port for use with supermux.
-USERFLAGS ?= -Os -ffunction-sections -fdata-sections -fno-common -g
+USERFLAGS ?= -Os -ffunction-sections -fdata-sections -fno-common -g -DARM_MATH_CM4 $(CMSIS_INCLUDES)
 USERCFLAGS ?=
 USERCXXFLAGS ?=
 USERLDFLAGS ?= $(SIZECUT) $(RELOCATE) -lm
