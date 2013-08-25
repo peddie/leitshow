@@ -14,7 +14,7 @@
 # What's the executable called?
 PROJ = main
 
-COMMON_DIR = /home/peddie/cosmogia/code/common
+COMMON_DIR = ../../cosmogia/common
 OPENCM3_DIR = $(COMMON_DIR)/libopencm3/
 LDSCRIPT ?= stm32f4-discovery.ld
 DEP_PKG = python-yaml autoconf libusb-1.0-0-dev doxygen doxygen-latex
