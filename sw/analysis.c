@@ -26,6 +26,10 @@
 #define CHAN_GAIN_BUMP 0.001
 #define CHAN_GAIN_UPDATE_BUMP 0.05
 
+/* Decorrelation config */
+#define DECORR_BASE_CHANNEL 0
+#define DECORR_PERCENT_DERIV 0.9
+
 /* Threshold config */
 #define THRESH_GOAL_ACTIVITY {0.3, 0.3, 0.3, 0.1}
 #define THRESH_FILTER_CUTOFF_HZ {0.04, 0.04, 0.04, 0.04}
@@ -129,6 +133,21 @@ threshold_bins(float bins[NUM_CHANNELS],
   }
 }
 
+static void
+diff_bins(float bins[NUM_CHANNELS],
+          const float filter_state[NUM_CHANNELS]) {
+  for (int i = 0; i < NUM_CHANNELS; i++) {
+    if (i == DECORR_BASE_CHANNEL) continue;
+
+    const float ratio = filter_state[i] / filter_state[DECORR_BASE_CHANNEL];
+    bins[i] = fabs(bins[i] - filter_state[i]
+                   - 0.1 * filter_state[DECORR_BASE_CHANNEL]);
+    bins[i] = DECORR_PERCENT_DERIV * fabs(bins[i] - filter_state[i])
+        + (1 - DECORR_PERCENT_DERIV)
+        * fabs(bins[i] - ratio * bins[DECORR_BASE_CHANNEL]);
+  }
+}
+
 float gain_filter_states[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY;
 float gains[NUM_CHANNELS] = CHANNEL_GAIN;
 float thresh_filter_state[NUM_CHANNELS] = THRESH_GOAL_ACTIVITY;
@@ -149,6 +168,9 @@ analyze(float input[NUM_BANDS], float output[NUM_CHANNELS]) {
 
   const float total_bins = output[0] + output[1] + output[2] + output[3];
   if (total_bins > MIN_SPECTRUM_POWER) {
+    /* Make things more exciting */
+    diff_bins(output, gain_filter_states);
+
     /* Adaptive filter on gains */
     gain_adjust_bins(output, gain_filter_states, gains);
 
