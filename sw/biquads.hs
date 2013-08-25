@@ -2,20 +2,28 @@
 
 import Data.List (intercalate)
 import System.Environment (getArgs)
+import Text.Printf
+
+ts :: Double
+ts = 11025
 
 -- | Print out some sets of coefficients for a filter bank.
 main :: IO ()
-main = getArgs >>= \x -> putStrLn $ unlines $ map printCoeffs $ reverse $
-                        take (read $ head x) $ drop 2 $
-                        repeatF (/2) (11025 :: Double)
+main = do
+  putStrLn $ printf "Generating coefficients for a sample time of %f seconds (%f Hz)"
+             (1/ts) ts
+  getArgs >>= \x -> putStrLn $ unlines $ map (printCoeffs ts) $ reverse $
+                    take (read $ head x) $ drop 2 $
+                    repeatF (/2) ts
+
 
 -- | Repeatedly apply a function (for creating banks of filters)
 repeatF :: (a -> a) -> a -> [a]
 repeatF f x = x : repeatF f (f x)
 
 -- | Output the coefficients an audio low-pass filter (ready for C code)
-printCoeffs :: (Floating a1, Show a1) => a1 -> String
-printCoeffs freq = show (biquadCoeffs LowPass freq 44100 (1/(sqrt 2))) ++ "  /* " ++ show freq ++ " Hz */"
+printCoeffs :: (Floating a1, Show a1) => a1 -> a1 -> String
+printCoeffs time freq = show (biquadCoeffs LowPass freq time (1/(sqrt 2))) ++ "  /* " ++ show freq ++ " Hz */"
 
 -- | Different types of filters we know about.
 data FilterType = LowPass
