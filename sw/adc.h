@@ -84,8 +84,7 @@ typedef enum {
 void adc_setup(void);         ///< Sets up the pins and clocks
 void adc_poll(void);          ///< Starts a sequence of conversions.
 
-int adc_commandler(uint8_t len, const uint8_t data[],
-                   uint8_t *replen, uint8_t reply[]);
+void adc_get_dma_results(uint16_t results[2]);
 
 // Debugging
 void adc_debug(void);   // Poll ADC and show results

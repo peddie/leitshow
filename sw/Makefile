@@ -24,7 +24,8 @@ SRC ?= $(PROJ).c \
        adc.c \
        usart.c \
        timer.c \
-       pwm.c
+       pwm.c \
+       leitshow.c
 
 SIZECUT = --specs=nano.specs
 

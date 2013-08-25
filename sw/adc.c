@@ -152,9 +152,8 @@ static void adc_init(void) {
   // pretty fragile.  Don't change anything here unless you have to.
   adc_configuration_t test_adc1 = {
     ADC1,           // Name of ADC peripheral
-    {ADC_CHANNEL8, ADC_CHANNEL9, ADC_CHANNEL14,
-      ADC_CHANNEL15, ADC_CHANNEL16, ADC_CHANNEL17},   // Listing of Channels
-    6,                                              // Number of channels
+    {ADC_CHANNEL8, ADC_CHANNEL9},   // Listing of Channels
+    1,                                              // Number of channels
     {
       DMA2,                         // Assocaited DMA
       DMA_STREAM0,                  // Assocated DMA Stream
@@ -165,24 +164,8 @@ static void adc_init(void) {
     }
   };
 
-  adc_configuration_t test_adc3 = {
-    ADC3,
-    {ADC_CHANNEL9, ADC_CHANNEL14, ADC_CHANNEL15,
-      ADC_CHANNEL4, ADC_CHANNEL5, ADC_CHANNEL6, ADC_CHANNEL7},
-    7,
-    {
-      DMA2,
-      DMA_STREAM1,
-      DMA_SxCR_CHSEL_2,
-      (volatile uint32_t *) &ADC3_DR,
-      (uint16_t *) &GLOBAL_ACD_DMA_BUFFER[8],
-      7
-    }
-  };
-
   adc_dynamic_init(test_adc1);
 
-  adc_dynamic_init(test_adc3);
 }
 
 // ------------------------------------------------------------------- Public
@@ -194,19 +177,18 @@ void adc_setup(void) {
 
   // 1. Turn off ADC for configuration
   adc_off(ADC1);
-  adc_off(ADC3);
 
   // 2. Set the pin configuration
   //    Note that we're setting all these pins to be analog pins, no pull up or
   //    pull down
+  rcc_peripheral_enable_clock(&RCC_AHB1ENR, RCC_AHB1ENR_IOPBEN);
   gpio_mode_setup(GPIOB, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO0 | GPIO1);    // B0 and B1
-  gpio_mode_setup(GPIOC, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO4 | GPIO5);    // C4 and C5
-  gpio_mode_setup(GPIOF, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO3 | GPIO4 | GPIO5 | GPIO6 | GPIO7 | GPIO8 | GPIO9);    // Port F current sensors
 
   // 3. Setup the clocks
   rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_ADC1EN);
-  rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_ADC3EN);
   adc_set_clk_prescale(ADC_CCR_ADCPRE_BY2);
+  rcc_peripheral_enable_clock(&RCC_AHB1ENR, RCC_AHB1ENR_DMA2EN);
+
 
   // The rest of the configuration is handled in adc_init()
   adc_init();
@@ -215,7 +197,12 @@ void adc_setup(void) {
 
 void adc_poll() {
   adc_start_conversion_regular(ADC1);
-  adc_start_conversion_regular(ADC3);
+}
+
+
+void adc_get_dma_results(uint16_t results[2]) {
+  results[0] = GLOBAL_ACD_DMA_BUFFER[0];
+  results[1] = GLOBAL_ACD_DMA_BUFFER[1];
 }
 
 void adc_debug(void) {
@@ -246,13 +233,6 @@ void adc_debug(void) {
   }
 }
 
-
-static void respond(uint8_t cmd, uint16_t response, uint8_t *replen, uint8_t reply[]) {
-  reply[0] = cmd;
-  reply[1] = 1;
-  memcpy((char*)&reply[2], &response, 2);
-  *replen = 4;
-}
 
 /*
 int adc_commandler(uint8_t len, const uint8_t data[],
