@@ -39,7 +39,7 @@
 (1 + (THRESH_FILTER_SAMPLE_TIME * 6.283185307179586)))
 #define THRESH_MIN 0.02
 #define THRESH_MAX 0.9
-#define THRESH_BUMP 0.1
+#define THRESH_BUMP 0.001
 #define THRESH_UPDATE_BUMP 0.05
 
 /* Power values for each channel at the last timestep */
