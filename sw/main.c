@@ -4,9 +4,12 @@
 #include <libopencm3/stm32/f4/gpio.h>
 #include <libopencm3/stm32/f4/rcc.h>
 #include <libopencm3/stm32/f4/timer.h>
+#include <libopencm3/stm32/f4/nvic.h>
+#include <libopencm3/stm32/f4/usart.h>
 #include "./timer.h"
 #include "./pwm.h"
 #include "./adc.h"
+#include "./usart.h"
 #include "./leitshow.h"
 
 
@@ -39,6 +42,13 @@ static void setup_peripherals(void) {
 
   // input
   adc_setup();
+
+  // serial port
+  rcc_peripheral_enable_clock(&RCC_APB1ENR, RCC_APB1ENR_USART3EN);
+  rcc_peripheral_enable_clock(&RCC_AHB1ENR, RCC_AHB1ENR_IOPDEN);
+  gpio_mode_setup(GPIOD, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO8 | GPIO9);
+  gpio_set_af(GPIOD, GPIO_AF7, GPIO8 | GPIO9);
+  usart_init(USART3, NVIC_USART3_IRQ, 115200, 0);
 }
 
 static void set_all_chans(float percent[N_CHANS]) {
@@ -49,9 +59,16 @@ static void set_all_chans(float percent[N_CHANS]) {
 }
 
 static void overflow(void) {
+  // panic
   float brt[4]={1,1,1,1};
-  set_all_chans(brt);
-  while(1);
+  float off[4]={0,0,0,0};
+
+  while(1) {
+      set_all_chans(brt);
+      _delay_ms(500);
+      set_all_chans(off);
+      _delay_ms(500);
+  }
 }
 
 int main(void) {
@@ -62,21 +79,25 @@ int main(void) {
 
   uint16_t adc[2]={22,22};
 
-  filter_setup();
+  leitshow_init();
+
+  uint32_t load;
 
   while (1) {
     uint32_t ts= tick();
     adc_get_dma_results(adc);
     adc_poll();
 
-    //    leitshow_step(adc[0], brt);
-    analysis_callback(adc[0], brt);
+    leitshow_step(adc[0], brt);
     set_all_chans(brt);
 
-    if (tock_us(ts) > PERIOD_US)
-      overflow();
+    load = tock_us(ts);
+
+    //    if (load > PERIOD_US) overflow();
 
     while (tock_us(ts) < PERIOD_US);
+
+    //    usart_send_blocking(USART3, '?');
 
   }
   return 0;

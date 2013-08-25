@@ -25,5 +25,6 @@ void
 analysis_callback(float input, float output[NUM_CHANNELS]) {
   float bins[NUM_BANDS];
   filter_step(input, bins);
+
   analyze(bins, output);
 }
