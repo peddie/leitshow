@@ -81,7 +81,7 @@ int main(void) {
 
   leitshow_init();
 
-  uint32_t load;
+  volatile uint32_t load;
 
   while (1) {
     uint32_t ts = tick();
