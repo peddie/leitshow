@@ -5,7 +5,7 @@
  * audio samples.  It returns filter bank values */
 
 /* Some filter math */
-#define NUM_BANDS 12
+#define NUM_BANDS 9
 /* Don't need to filter the highest band if we assume it goes up to
    22.05 kHz (Nyquist) */
 #define NUM_FILTERS (NUM_BANDS - 1)
@@ -21,6 +21,6 @@ void filter_setup(void);
 /* Run `count` samples through the filter bank at once. `input` should
  * contain `count` samples; `output` should have room for `NUM_BANDS`
  * output values. */
-void filter_step(uint32_t count, float input[], float output[]);
+void filter_step(float input, float output[]);
 
 #endif  /* __LEITSHOW_FILTERBANK_H__ */
