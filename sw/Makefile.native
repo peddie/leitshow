@@ -1,0 +1,48 @@
+# What's the executable called?
+PROJ = test_filterbank
+
+COMMON_DIR ?= /home/peddie/cosmogia/code/common
+LCM_UPSTREAM_DIR ?= /usr/local/include
+
+# What C or C++ files must we compile to make the executable?
+SRC ?= $(PROJ).c \
+       filterbank.c
+
+# What additional headers are needed as dependencies?
+HDR ?=
+
+# What directories must we include?
+INCLUDENAMES ?= $(COMMON_DIR) # e.g. ../mathlib; the makefile will add the -I
+OTHERINCLUDE ?= -isystem$(LCM_UPSTREAM_DIR) # `pkg-config --cflags lcm`
+
+# With what libraries should we link?
+LIBNAMES ?= m # e.g. m gsl atlas; the makefile will add the -l
+LIBDIRS ?= # e.g. ../; the makefile will add the -L
+OTHERLIB ?=
+
+# You can add custom compiler and linker flags here.  USERFLAGS gets
+# used by all compiler and linker calls, except when creating a static
+# lib.  The others are specific to their stage.
+USERFLAGS ?= -Wno-variadic-macros
+ifdef DEBUG
+USERFLAGS += -DDEBUG
+endif
+USERCFLAGS ?=
+USERCXXFLAGS ?=
+USERLDFLAGS ?=
+
+MKFILE_DIR = $(COMMON_DIR)/Makefile-template/
+
+# Use the Google C++ linter on C files, rather than the 'splint' command
+C_LINT = $(COMMON_DIR)/../dev_tools/bin/cpplint.py
+
+# Use the Google C++ linter for flymake targets.
+EXTRA_CHECKS = lint
+
+include $(MKFILE_DIR)common_head.mk
+include $(MKFILE_DIR)native.mk
+include $(MKFILE_DIR)build.mk
+include $(MKFILE_DIR)test.mk
+include $(MKFILE_DIR)syntax.mk
+include $(MKFILE_DIR)clean.mk
+include $(MKFILE_DIR)common_tail.mk
