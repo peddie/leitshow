@@ -6,7 +6,7 @@
 #include "./analysis.h"
 
 #define GLOBAL_SAMPLE_TIME (1.0 / 11025.0)
-#define MIN_SPECTRUM_POWER 1e-8
+#define MIN_SPECTRUM_POWER 1e-5
 
 /* Envelope filtering config */
 #define CHANNEL_GAIN {0.3, 1.5, 1.5, 0.5}
@@ -22,7 +22,7 @@
 ((CHAN_GAIN_FILTER_SAMPLE_TIME * 6.283185307179586) / \
 (1 + (CHAN_GAIN_FILTER_SAMPLE_TIME * 6.283185307179586)))
 #define CHAN_GAIN_MAX 22.0
-#define CHAN_GAIN_GOAL_ACTIVITY {0.3, 0.3, 0.3, 0.5}
+#define CHAN_GAIN_GOAL_ACTIVITY {0.4, 0.5, 0.4, 0.6}
 #define CHAN_GAIN_BUMP 0.001
 #define CHAN_GAIN_UPDATE_BUMP 0.05
 
@@ -163,13 +163,10 @@ analyze(float input[NUM_BANDS], float output[NUM_CHANNELS]) {
   output[2] = input[6] + input[7];
   output[3] = input[8] + input[9];
 
-  if (loopcount++ > 100000)
-    output[0] += 0.00001;
-
   const float total_bins = output[0] + output[1] + output[2] + output[3];
   if (total_bins > MIN_SPECTRUM_POWER) {
     /* Make things more exciting */
-    diff_bins(output, gain_filter_states);
+    /* diff_bins(output, gain_filter_states); */
 
     /* Adaptive filter on gains */
     gain_adjust_bins(output, gain_filter_states, gains);
