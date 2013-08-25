@@ -8,5 +8,5 @@ void leitshow_init() {
 }
 
 void leitshow_step(uint16_t sample, float output[4]) {
-  analysis_callback((sample-2000)/2048.0, output);
+  analysis_callback(sample / 4095.0, output);
 }

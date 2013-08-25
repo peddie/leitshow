@@ -5,7 +5,7 @@
  * audio samples.  It returns filter bank values */
 
 /* Some filter math */
-#define NUM_BANDS 9
+#define NUM_BANDS 10
 /* Don't need to filter the highest band if we assume it goes up to
    22.05 kHz (Nyquist) */
 #define NUM_FILTERS (NUM_BANDS - 1)

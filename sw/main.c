@@ -48,7 +48,7 @@ static void setup_peripherals(void) {
   rcc_peripheral_enable_clock(&RCC_AHB1ENR, RCC_AHB1ENR_IOPDEN);
   gpio_mode_setup(GPIOD, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO8 | GPIO9);
   gpio_set_af(GPIOD, GPIO_AF7, GPIO8 | GPIO9);
-  usart_init(USART3, NVIC_USART3_IRQ, 115200, 0);
+  // usart_init(USART3, NVIC_USART3_IRQ, 115200, 0);
 }
 
 static void set_all_chans(float percent[N_CHANS]) {
@@ -84,7 +84,7 @@ int main(void) {
   uint32_t load;
 
   while (1) {
-    uint32_t ts= tick();
+    uint32_t ts = tick();
     adc_get_dma_results(adc);
     adc_poll();
 
@@ -93,7 +93,7 @@ int main(void) {
 
     load = tock_us(ts);
 
-    //    if (load > PERIOD_US) overflow();
+    if (load > PERIOD_US) overflow();
 
     while (tock_us(ts) < PERIOD_US);
 
