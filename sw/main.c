@@ -62,7 +62,7 @@ int main(void) {
 
   uint16_t adc[2]={22,22};
 
-  leitshow_init();
+  filter_setup();
 
   while (1) {
     uint32_t ts= tick();
