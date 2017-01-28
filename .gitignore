@@ -4,3 +4,10 @@
 *.lst
 
 leitshow
+*.o
+*.o.x86_64
+*.lst.x86_64
+*.lst
+*.d
+*.map
+compile_commands.json
