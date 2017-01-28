@@ -21,6 +21,7 @@
 
 #include "./config.h"
 #include "./util.h"
+#include "./pca.h"
 
 #include "./arraymath.h"
 
@@ -33,9 +34,11 @@
 struct termios tio;
 
 /* Bin boundary indices within the FFT data */
-int bin_bounds[NUM_BIN_BOUNDS] = {256 * BUFSIZE / 2048,
-                                  512 * BUFSIZE / 2048,
+int bin_bounds[NUM_BIN_BOUNDS] = {16 * BUFSIZE / 2048,  32 * BUFSIZE / 2048,
+                                  64 * BUFSIZE / 2048,  128 * BUFSIZE / 2048,
+                                  256 * BUFSIZE / 2048, 512 * BUFSIZE / 2048,
                                   2048 * BUFSIZE / 2048};
+
 /* Power values for each channel at the last timestep */
 float channels_old[NUM_OUTPUTS];
 
@@ -48,6 +51,8 @@ float gains[NUM_OUTPUTS] = CHANNEL_GAIN;
 float thresh_filter_state[NUM_OUTPUTS] = THRESH_GOAL_ACTIVITY;
 /* Activity thresholds */
 float thresholds[NUM_OUTPUTS];
+
+SampleBuffer *sample_buffer = NULL;
 
 static int
 serial_setup(const char *device) {
@@ -163,9 +168,14 @@ set_channels(uint8_t channel[NUM_OUTPUTS],
   } else {
     /* Got signal -- analyze! */
 
+    float binout[NUM_BINS];
+    activate_samples(NUM_BINS, bins, sample_buffer, binout);
+    for (int i = 0; i < NUM_BINS; i++) {
+      float_channel[i % NUM_OUTPUTS] += logf(fabsf(binout[i]));
+    }
     /* Differentiate most bins to decorrelate them */
-    diff_bins(bins, filter_state);
-    memcpy(float_channel, bins, sizeof(float_channel));
+    /* diff_bins(bins, filter_state); */
+    /* memcpy(float_channel, bins, sizeof(float_channel)); */
 
     /* Adjust for better activity */
     gain_adjust_channels(float_channel, filter_state, gains);
@@ -228,6 +238,11 @@ main(int argc __attribute__((unused)),
   fftwf_plan plan = fftwf_plan_dft_r2c_1d(AUDIO_SIZE*BUFFER_CYCLE,
                                           buf, out, FFTW_MEASURE);
 
+  sample_buffer = new_sample_buffer(PCA_HISTORY, NUM_BINS);
+  if (NULL == sample_buffer) {
+    fprintf(stderr, "Failed to allocate sample buffer, sorry.\n");
+    return 1;
+  }
   memset(buf, 0, AUDIO_BYTES*BUFFER_CYCLE);
   fprintf(stderr,
           "AUDIO_BYTES = %zu, AUDIO_SIZE = %d, REAL_FFT_SIZE = %d, "

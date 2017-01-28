@@ -25,7 +25,7 @@
 #define NUM_OUTPUTS 4
 
 /* Number of FFT bins to compute to give to the analysis pipeline */
-#define NUM_BINS 4
+#define NUM_BINS 8
 #define NUM_BIN_BOUNDS (NUM_BINS - 1)
 
 /* Envelope filtering config */
@@ -63,6 +63,9 @@
 #define THRESH_MAX 0.9
 #define THRESH_BUMP 0.001
 #define THRESH_UPDATE_BUMP 0.05
+
+/* PCA config */
+#define PCA_HISTORY 2000
 
 /* Serial I/O config */
 #define BAUDRATE B115200
