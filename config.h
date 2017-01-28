@@ -21,8 +21,12 @@
   ((((int) ((float) AUDIO_SIZE / NUM_AUDIO_CHANNELS)) * BUFFER_CYCLE))
 
 /* Output config */
-#define NUM_CHANNELS 4
-#define NUM_BOUNDS (NUM_CHANNELS - 1)
+/* Number of output channels we have to drive */
+#define NUM_OUTPUTS 4
+
+/* Number of FFT bins to compute to give to the analysis pipeline */
+#define NUM_BINS 4
+#define NUM_BIN_BOUNDS (NUM_BINS - 1)
 
 /* Envelope filtering config */
 #define CHANNEL_GAIN {0.3, 1.5, 1.5, 0.5}
@@ -44,7 +48,7 @@
 #define CHAN_GAIN_UPDATE_BUMP 0.05
 
 /* Decorrelation config */
-#define DECORR_BASE_CHANNEL 0
+#define DECORR_BASE_BIN 0
 #define DECORR_PERCENT_DERIV 0.9
 
 /* Threshold config */

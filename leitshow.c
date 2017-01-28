@@ -33,21 +33,21 @@
 struct termios tio;
 
 /* Bin boundary indices within the FFT data */
-int bin_bounds[NUM_BOUNDS] = {256 * BUFSIZE / 2048,
-                              512 * BUFSIZE / 2048,
-                              2048 * BUFSIZE / 2048};
+int bin_bounds[NUM_BIN_BOUNDS] = {256 * BUFSIZE / 2048,
+                                  512 * BUFSIZE / 2048,
+                                  2048 * BUFSIZE / 2048};
 /* Power values for each channel at the last timestep */
-float bins_old[NUM_CHANNELS];
+float channels_old[NUM_OUTPUTS];
 
 /* Activity filter state */
-float filter_state[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY;
+float filter_state[NUM_OUTPUTS] = CHAN_GAIN_GOAL_ACTIVITY;
 /* Channel gains */
-float gains[NUM_CHANNELS] = CHANNEL_GAIN;
+float gains[NUM_OUTPUTS] = CHANNEL_GAIN;
 
 /* Threshold filter state */
-float thresh_filter_state[NUM_CHANNELS] = THRESH_GOAL_ACTIVITY;
+float thresh_filter_state[NUM_OUTPUTS] = THRESH_GOAL_ACTIVITY;
 /* Activity thresholds */
-float thresholds[NUM_CHANNELS];
+float thresholds[NUM_OUTPUTS];
 
 static int
 serial_setup(const char *device) {
@@ -92,20 +92,20 @@ calc_fft_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
 
 static void
 calc_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
-           float bin_powers[NUM_CHANNELS],
-           float bin_phases[NUM_CHANNELS]) {
+           float bin_powers[NUM_BINS],
+           float bin_phases[NUM_BINS]) {
   int i;
   float freq_powers[REAL_FFT_SIZE], freq_phases[REAL_FFT_SIZE];
   calc_fft_stats(freq_data, freq_powers, freq_phases);
 
-  for (i = 0; i < NUM_CHANNELS; i++) {
+  for (i = 0; i < NUM_BINS; i++) {
     /* Compute safe indices */
     int min_ind, max_ind, bin_size;
     if (i == 0)
       min_ind = 0;
     else
       min_ind = bin_bounds[i - 1];
-    if (i == NUM_CHANNELS - 1)
+    if (i == NUM_BINS - 1)
       max_ind = REAL_FFT_SIZE - 1;
     else
       max_ind = bin_bounds[i] - 1;
@@ -121,54 +121,65 @@ calc_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
 }
 
 static void
-calc_bins(float bins[NUM_CHANNELS],
+calc_bins(float bins[NUM_BINS],
           const float time_data[AUDIO_SIZE] __attribute__((unused)),
           const fftwf_complex freq_data[REAL_FFT_SIZE]) {
   /* Compute binwise statistics */
-  float bin_phases[NUM_CHANNELS];
+  float bin_phases[NUM_BINS];
   calc_stats(freq_data, bins, bin_phases);
 }
 
 static inline void
-lpf_bins(float bins[NUM_CHANNELS]) {
+lpf_channels(float bins[NUM_OUTPUTS]) {
   /* Low-pass filter each channel (set the performance with
    * BIN_FILTER_CUTOFF_HZ).  */
-  const float binfilter[NUM_CHANNELS] = BIN_FILTER_CUTOFF_HZ;
-  for (int i = 0; i < NUM_CHANNELS; i++)
-    bins_old[i] = bins[i] = binfilter[i]*BIN_FILTER_CONSTANT * bins[i]
-        + (1 - binfilter[i]*BIN_FILTER_CONSTANT) * bins_old[i];
+  const float binfilter[NUM_OUTPUTS] = BIN_FILTER_CUTOFF_HZ;
+  for (int i = 0; i < NUM_OUTPUTS; i++)
+    channels_old[i] = bins[i] =
+        binfilter[i] * BIN_FILTER_CONSTANT * bins[i] +
+        (1 - binfilter[i] * BIN_FILTER_CONSTANT) * channels_old[i];
 }
 
+float float_channel_old[NUM_OUTPUTS];
+
 static void
-set_channels(uint8_t channel[NUM_CHANNELS],
+set_channels(uint8_t channel[NUM_OUTPUTS],
              const float time_data[AUDIO_SIZE],
              const fftwf_complex freq_data[REAL_FFT_SIZE]) {
-  float bins[NUM_CHANNELS];
+  float bins[NUM_BINS];
   /* Make sure we don't end up accidentally reusing data. */
-  for (int i = 0; i < NUM_CHANNELS; i++) bins[i] = 0;
+  for (int i = 0; i < NUM_BINS; i++) bins[i] = 0;
 
   /* Calculate values based on audio */
   calc_bins(bins, time_data, freq_data);
 
   float total_bins = 0;
-  for (int i = 0; i < NUM_CHANNELS; i++) total_bins += bins[i];
+  for (int i = 0; i < NUM_BINS; i++) total_bins += fabsf(bins[i]);
 
-  if (fabs(total_bins) > 1e-5) {
+  float float_channel[NUM_OUTPUTS];
+  if (total_bins < 1e-5) {
+    /* Not enough signal; use the data from the previous timestep. */
+    memcpy(float_channel, float_channel_old, sizeof(float_channel));
+  } else {
+    /* Got signal -- analyze! */
+
     /* Differentiate most bins to decorrelate them */
     diff_bins(bins, filter_state);
+    memcpy(float_channel, bins, sizeof(float_channel));
 
     /* Adjust for better activity */
-    gain_adjust_bins(bins, filter_state, gains);
+    gain_adjust_channels(float_channel, filter_state, gains);
 
     /* Low-pass output signals */
-    lpf_bins(bins);
+    lpf_channels(float_channel);
 
     /* Threshold for better activity */
-    threshold_bins(bins, thresh_filter_state, thresholds);
-  } else { memcpy(bins, filter_state, sizeof(bins)); }
+    threshold_channels(float_channel, thresh_filter_state, thresholds);
+    memcpy(float_channel_old, float_channel, sizeof(float_channel_old));
+  }
 
   /* Convert to 8-bit binary */
-  clip_and_convert_channels(channel, bins);
+  clip_and_convert_channels(channel, float_channel);
 }
 
 
@@ -193,7 +204,7 @@ main(int argc __attribute__((unused)),
   };
   pa_simple *s = NULL;
   int error, serial;
-  uint8_t ser[4+NUM_CHANNELS];
+  uint8_t ser[4+NUM_OUTPUTS];
 
   /* Create the recording stream */
   if (!(s = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss,
@@ -245,7 +256,7 @@ main(int argc __attribute__((unused)),
     /* Map the FFT data onto channel magnitudes. */
     set_channels(&ser[4], buf, (const fftwf_complex *) out);
 
-    error = write(serial, ser, 4+NUM_CHANNELS);
+    error = write(serial, ser, 4+NUM_OUTPUTS);
   }
 
  finish:
