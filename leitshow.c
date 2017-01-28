@@ -192,7 +192,7 @@ main(int argc __attribute__((unused)),
     .tlength = (uint32_t) -1,
   };
   pa_simple *s = NULL;
-  int error, serial, i;
+  int error, serial;
   uint8_t ser[4+NUM_CHANNELS];
 
   /* Create the recording stream */
@@ -219,7 +219,7 @@ main(int argc __attribute__((unused)),
 
   memset(buf, 0, AUDIO_BYTES*BUFFER_CYCLE);
   fprintf(stderr,
-          "AUDIO_BYTES = %d, AUDIO_SIZE = %d, REAL_FFT_SIZE = %d, "
+          "AUDIO_BYTES = %zu, AUDIO_SIZE = %d, REAL_FFT_SIZE = %d, "
           "BIN_FILTER_CONSTANT = %f\n",
           AUDIO_BYTES, AUDIO_SIZE, REAL_FFT_SIZE,
           BIN_FILTER_CONSTANT);
@@ -229,7 +229,7 @@ main(int argc __attribute__((unused)),
 
   while (1) {
     /* Cycle audio data through the buffer */
-    for (i = BUFFER_CYCLE-2; i >= 0; i--)
+    for (int i = BUFFER_CYCLE-2; i >= 0; i--)
       memcpy(&buf[AUDIO_SIZE*(i+1)], &buf[AUDIO_SIZE*i], AUDIO_BYTES);
 
     /* Record some data ... */
