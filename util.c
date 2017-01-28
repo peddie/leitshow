@@ -49,6 +49,7 @@ gain_adjust_bins(float bins[NUM_CHANNELS],
   const float cutoffs[NUM_CHANNELS] = CHAN_GAIN_FILTER_CUTOFF_HZ;
   const float act_goal[NUM_CHANNELS] = CHAN_GAIN_GOAL_ACTIVITY;
 
+  fprintf(stderr, "{");
   /* Scale each bin's signal by the corresponding gain. */
   for (int i = 0; i < NUM_CHANNELS; i++) {
     bins[i] *= gains[i];
@@ -74,7 +75,7 @@ gain_adjust_bins(float bins[NUM_CHANNELS],
     fprintf(stderr, "%.2f ", gains[i]);
 #endif  /* DEBUG */
   }
-  fprintf(stderr, "    ");
+  fprintf(stderr, "\b}    ");
 }
 
 static inline float
@@ -100,6 +101,7 @@ threshold_bins(float bins[NUM_CHANNELS],
   const float cutoffs[NUM_CHANNELS] = THRESH_FILTER_CUTOFF_HZ;
   const float goal[NUM_CHANNELS] = THRESH_GOAL_ACTIVITY;
 
+  fprintf(stderr, "[");
   for (int i = 0; i < NUM_CHANNELS; i++) {
     /* Threshold the bin */
     bins[i] = bin_above_threshold(bins[i], thresholds[i]);
@@ -121,15 +123,16 @@ threshold_bins(float bins[NUM_CHANNELS],
 
     fprintf(stderr, " %.2f", thresholds[i]);
   }
-  fprintf(stderr, "\t");
+  fprintf(stderr, "]   ");
 }
 
 void
 diff_bins(float bins[NUM_CHANNELS],
           const float filter_state[NUM_CHANNELS] __attribute__((unused))) {
+  fprintf(stderr, "(");
   for (int i = 0; i < NUM_CHANNELS; i++) {
     if (i == DECORR_BASE_CHANNEL) {
-      fprintf(stderr, "%+03.2lf ", bins[i]);
+      fprintf(stderr, "%.2e ", bins[i]);
       continue;
     }
 
@@ -142,8 +145,9 @@ diff_bins(float bins[NUM_CHANNELS],
     bins[i] = DECORR_PERCENT_DERIV * fabs(bins[i] - filter_state[i])
         + (1 - DECORR_PERCENT_DERIV)
         * fabs(bins[i] - ratio * bins[DECORR_BASE_CHANNEL]);
-    fprintf(stderr, "%+03.2lf ", bins[i]);
+    fprintf(stderr, "%.2e ", bins[i]);
   }
+  fprintf(stderr, "\b)    ");
 }
 
 void
