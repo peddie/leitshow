@@ -128,7 +128,10 @@ void
 diff_bins(float bins[NUM_CHANNELS],
           const float filter_state[NUM_CHANNELS] __attribute__((unused))) {
   for (int i = 0; i < NUM_CHANNELS; i++) {
-    if (i == DECORR_BASE_CHANNEL) continue;
+    if (i == DECORR_BASE_CHANNEL) {
+      fprintf(stderr, "%+03.2lf ", bins[i]);
+      continue;
+    }
 
     const float ratio = filter_state[i] / filter_state[DECORR_BASE_CHANNEL];
     /* Alternate way to compute ratio */
@@ -139,6 +142,7 @@ diff_bins(float bins[NUM_CHANNELS],
     bins[i] = DECORR_PERCENT_DERIV * fabs(bins[i] - filter_state[i])
         + (1 - DECORR_PERCENT_DERIV)
         * fabs(bins[i] - ratio * bins[DECORR_BASE_CHANNEL]);
+    fprintf(stderr, "%+03.2lf ", bins[i]);
   }
 }
 
@@ -148,6 +152,7 @@ clip_and_convert_channels(uint8_t channel[NUM_CHANNELS],
   int i;
   uint8_t tmp;
   float out;
+  fprintf(stderr, "\t\t");
   for (i = 0; i < NUM_CHANNELS; i++) {
     /* Make sure we don't exceed 255.  */
     // out = bins[NUM_CHANNELS-1-i];
@@ -155,7 +160,7 @@ clip_and_convert_channels(uint8_t channel[NUM_CHANNELS],
     if (out > 1.0)
       out = 1.0;
     channel[i] = (uint8_t) (255 * out);
-    DBGPRINT(stderr, "%d ", channel[i]);
+    fprintf(stderr, "%d ", channel[i]);
   }
   fprintf(stderr, "\n");
   tmp = channel[0];
