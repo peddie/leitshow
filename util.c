@@ -62,19 +62,54 @@ void gain_adjust_channels(float channels[NUM_OUTPUTS],
     /* If we're saturating or not using a channel, get out of there! */
     float edgegain = 1;
     if (channels[i] > 1 || channels[i] <= 0)
-      edgegain = 50;
+      edgegain = 10;
 
     if (fabs(update) > CHAN_GAIN_UPDATE_BUMP)
       gains[i] += CHAN_GAIN_BUMP*update*edgegain;
-    if (gains[i] > CHAN_GAIN_MAX) gains[i] = CHAN_GAIN_MAX;
-#ifdef DEBUG
-    fprintf(stderr, "%d(%.2f:%.2f::%.3f:%.2f) ",
-            i, channels[i], filter_state[i], update, gains[i]);
-#else
-    fprintf(stderr, "%.2f ", gains[i]);
-#endif  /* DEBUG */
+    if (gains[i] > CHAN_GAIN_MAX)
+      gains[i] = CHAN_GAIN_MAX;
+    if (gains[i] < 1e-6)
+      gains[i] = 1e-6;
+    fprintf(stderr, "%.2e ", gains[i]);
   }
   fprintf(stderr, "\b}    ");
+}
+
+void log_sliding_mode_gain(float channels[NUM_OUTPUTS],
+                           float filter_state[NUM_OUTPUTS] __attribute__((unused)),
+                           float gains[NUM_OUTPUTS]) {
+  const float act_goal[NUM_OUTPUTS] = CHAN_GAIN_GOAL_ACTIVITY;
+
+  // fprintf(stderr, "{");
+  for (int i = 0; i < NUM_OUTPUTS; i++) {
+    /* Scale each bin's signal by the corresponding gain. */
+    channels[i] *= gains[i];
+
+    /* Calculate the direction of the correction */
+    const float direction = act_goal[i] - channels[i];
+
+    /* Calculate the ratio of goal activity to current signal to know
+       how big our correction should be. */
+    /* const float ratio = act_goal[i] / (channels[i] + 1e-5); */
+    /* gains[i] *= 0.01 * ratio; */
+
+    /* Update gain by multiplied sliding-mode to give a logarithmic
+       effect */
+    if (direction > 0) {
+      gains[i] *= (1 + CHAN_GAIN_BUMP);
+    } else if (direction < 0) {
+      gains[i] *= (1 - CHAN_GAIN_BUMP);
+    }
+
+    if (gains[i] < 1e-5) {
+      /* This should never happen, if you think about it! */
+      gains[i] = 1e-5;
+    } else if (gains[i] > CHAN_GAIN_MAX) {
+      gains[i] = CHAN_GAIN_MAX;
+    }
+    // fprintf(stderr, "%.2e ", gains[i]);
+  }
+  // fprintf(stderr, "\b}    ");
 }
 
 static inline float
@@ -100,7 +135,7 @@ threshold_channels(float channels[NUM_OUTPUTS],
   const float cutoffs[NUM_OUTPUTS] = THRESH_FILTER_CUTOFF_HZ;
   const float goal[NUM_OUTPUTS] = THRESH_GOAL_ACTIVITY;
 
-  fprintf(stderr, "[");
+  // fprintf(stderr, "[");
   for (int i = 0; i < NUM_OUTPUTS; i++) {
     /* Threshold the bin */
     channels[i] = channel_above_threshold(channels[i], thresholds[i]);
@@ -120,9 +155,9 @@ threshold_channels(float channels[NUM_OUTPUTS],
     else if (thresholds[i] < THRESH_MIN)
       thresholds[i] = THRESH_MIN;
 
-    fprintf(stderr, " %.2f", thresholds[i]);
+    // fprintf(stderr, " %.2f", thresholds[i]);
   }
-  fprintf(stderr, "]   ");
+  // fprintf(stderr, "]   ");
 }
 
 void
@@ -152,21 +187,15 @@ diff_bins(float bins[NUM_BINS],
 void
 clip_and_convert_channels(uint8_t converted[NUM_OUTPUTS],
                           const float inputs[NUM_OUTPUTS]) {
-  int i;
-  uint8_t tmp;
-  float out;
   fprintf(stderr, "\t\t");
-  for (i = 0; i < NUM_OUTPUTS; i++) {
+  for (int i = 0; i < NUM_OUTPUTS; i++) {
     /* Make sure we don't exceed 255.  */
     // out = bins[NUM_OUTPUTS-1-i];
-    out = inputs[i];
+    float out = inputs[i];
     if (out > 1.0)
       out = 1.0;
     converted[i] = (uint8_t) (255 * out);
     fprintf(stderr, "%d ", converted[i]);
   }
   fprintf(stderr, "\n");
-  tmp = converted[0];
-  converted[0] = converted[2];
-  converted[2] = tmp;
 }

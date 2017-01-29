@@ -29,8 +29,8 @@
 #define NUM_BIN_BOUNDS (NUM_BINS - 1)
 
 /* Envelope filtering config */
-#define CHANNEL_GAIN {0.3, 1.5, 1.5, 0.5}
-#define BIN_FILTER_CUTOFF_HZ {5, 3, 3, 5}
+#define CHANNEL_GAIN {0.3, 0.1, 0.1, 0.5}
+#define BIN_FILTER_CUTOFF_HZ {2, 3, 3, 2}
 #define BIN_FILTER_SAMPLE_TIME (((float) BUFSIZE) / ((float) AUDIO_SAMPLE_RATE))
 #define BIN_FILTER_CONSTANT ((BIN_FILTER_SAMPLE_TIME * 6.283185307179586) / \
                              (1 + (BIN_FILTER_SAMPLE_TIME * 6.283185307179586)))
@@ -43,7 +43,7 @@
   ((CHAN_GAIN_FILTER_SAMPLE_TIME * 6.283185307179586) / \
    (1 + (CHAN_GAIN_FILTER_SAMPLE_TIME * 6.283185307179586)))
 #define CHAN_GAIN_MAX 22.0
-#define CHAN_GAIN_GOAL_ACTIVITY {0.3, 0.3, 0.3, 0.4}
+#define CHAN_GAIN_GOAL_ACTIVITY {0.5, 0.5, 0.5, 0.2}
 #define CHAN_GAIN_BUMP 0.001
 #define CHAN_GAIN_UPDATE_BUMP 0.05
 
@@ -52,7 +52,7 @@
 #define DECORR_PERCENT_DERIV 0.9
 
 /* Threshold config */
-#define THRESH_GOAL_ACTIVITY {0.3, 0.3, 0.3, 0.1}
+#define THRESH_GOAL_ACTIVITY {0.5, 0.5, 0.5, 0.3}
 #define THRESH_FILTER_CUTOFF_HZ {0.04, 0.04, 0.04, 0.04}
 #define THRESH_FILTER_SAMPLE_TIME \
   (((float) BUFSIZE) / ((float) AUDIO_SAMPLE_RATE))

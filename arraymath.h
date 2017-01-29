@@ -9,6 +9,15 @@ array_scale(float arr[], float scale, int n)
 }
 
 static inline float
+array_sum(float arr[], int n) {
+  float sum = 0;
+  for (int i = 0; i < n; i++) {
+    sum += arr[i];
+  }
+  return sum;
+}
+
+static inline float
 array_mean(float arr[], int n)
 {
   float mean = 0;

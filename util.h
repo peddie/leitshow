@@ -23,6 +23,13 @@ void gain_adjust_channels(float channels[NUM_OUTPUTS],
                           float filter_state[NUM_OUTPUTS],
                           float gains[NUM_OUTPUTS]);
 
+
+/* This is like `gain_adjust_channels` but using a simpler and more
+   logarithmic gain adaptation mechanism. */
+void log_sliding_mode_gain(float channels[NUM_OUTPUTS],
+                           float filter_state[NUM_OUTPUTS],
+                           float gains[NUM_OUTPUTS]);
+
 void threshold_channels(float channels[NUM_OUTPUTS],
                         float filter_state[NUM_OUTPUTS],
                         float thresholds[NUM_OUTPUTS]);

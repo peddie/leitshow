@@ -32,7 +32,7 @@ OTHERLIB ?=
 # You can add custom compiler and linker flags here.  USERFLAGS gets
 # used by all compiler and linker calls, except when creating a static
 # lib.  The others are specific to their stage.
-USERFLAGS ?= -Wno-aggregate-return -Wno-padded -Wno-inline
+USERFLAGS ?= -Wno-aggregate-return -Wno-padded -Wno-inline -fsanitize=address
 USERCFLAGS ?=
 USERCXXFLAGS ?=
 USERLDFLAGS ?=

@@ -120,8 +120,8 @@ calc_stats(const fftwf_complex freq_data[REAL_FFT_SIZE],
     /* Loop over all FFT data within this bin and compute magnitude
      * and phase. */
     bin_powers[i] = bin_phases[i] = 0;
-    bin_powers[i] = array_mean(&freq_powers[min_ind], bin_size);
-    bin_phases[i] = array_mean(&freq_phases[min_ind], bin_size);
+    bin_powers[i] = array_sum(&freq_powers[min_ind], bin_size);
+    bin_phases[i] = array_sum(&freq_phases[min_ind], bin_size);
   }
 }
 
@@ -171,14 +171,21 @@ set_channels(uint8_t channel[NUM_OUTPUTS],
     float binout[NUM_BINS];
     activate_samples(NUM_BINS, bins, sample_buffer, binout);
     for (int i = 0; i < NUM_BINS; i++) {
-      float_channel[i % NUM_OUTPUTS] += logf(fabsf(binout[i]));
+      float_channel[i % NUM_OUTPUTS] += fabsf(binout[i]);
+      // fabsf(logf(fabsf(binout[i]) + 1e-5) + 6);
     }
+    fprintf(stderr, "(");
+    for (int i = 0; i < NUM_OUTPUTS; i++) {
+      fprintf(stderr, "%.2e ", float_channel[i]);
+    }
+    fprintf(stderr, "\b)  ");
     /* Differentiate most bins to decorrelate them */
     /* diff_bins(bins, filter_state); */
     /* memcpy(float_channel, bins, sizeof(float_channel)); */
 
     /* Adjust for better activity */
     gain_adjust_channels(float_channel, filter_state, gains);
+    /* log_sliding_mode_gain(float_channel, filter_state, gains); */
 
     /* Low-pass output signals */
     lpf_channels(float_channel);
